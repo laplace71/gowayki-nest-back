@@ -1,4 +1,4 @@
-package com.andescode.gowaykinest.controllers;
+package com.gowayki.nest.infrastructure.rest;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

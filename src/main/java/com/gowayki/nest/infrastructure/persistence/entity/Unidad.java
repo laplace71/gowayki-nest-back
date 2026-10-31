@@ -1,4 +1,4 @@
-package com.andescode.gowaykinest.models;
+package com.gowayki.nest.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
