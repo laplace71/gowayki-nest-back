@@ -2,15 +2,20 @@ package com.gowayki.nest.infrastructure.config;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+
+import java.util.UUID;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
 
     private final JdbcTemplate jdbcTemplate;
+    private final PasswordEncoder passwordEncoder;
 
-    public DataSeeder(JdbcTemplate jdbcTemplate) {
+    public DataSeeder(JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
         this.jdbcTemplate = jdbcTemplate;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -70,6 +75,21 @@ public class DataSeeder implements CommandLineRunner {
 
             System.out.println(">>> [DataSeeder] ¡Unidades y GPS sembrados con éxito!");
         }
+
+        Integer usuarioCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM usuario", Integer.class);
+        if (usuarioCount != null && usuarioCount == 0) {
+            System.out.println(">>> [DataSeeder] Sembrando usuario chofer de prueba...");
+            String pinHash = passwordEncoder.encode("1234");
+            UUID userId = UUID.randomUUID();
+
+            jdbcTemplate.update(
+                "INSERT INTO usuario (id, nombre, dni, telefono, email, pin_hash, rol, is_online, intentos_fallidos, created_at) VALUES " +
+                "(?, 'Carlos Chofer Arequipa', '71234567', '958123456', 'chofer@gowayki.pe', ?, 'CHOFER', false, 0, NOW()) " +
+                "ON CONFLICT (dni) DO NOTHING;",
+                userId, pinHash
+            );
+
+            System.out.println(">>> [DataSeeder] ¡Usuario chofer (DNI: 71234567, PIN: 1234) sembrado con éxito!");
+        }
     }
 }
-
