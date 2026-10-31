@@ -31,3 +31,4 @@ public class UsuarioModel {
     private OffsetDateTime bloqueadoHasta;
     private OffsetDateTime createdAt;
 }
+

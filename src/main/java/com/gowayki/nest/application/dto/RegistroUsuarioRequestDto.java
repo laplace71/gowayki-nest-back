@@ -20,3 +20,4 @@ public class RegistroUsuarioRequestDto {
     private String fotoUrl;
     private String rol;
 }
+

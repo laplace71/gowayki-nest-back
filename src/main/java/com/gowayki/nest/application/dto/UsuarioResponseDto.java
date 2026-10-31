@@ -23,3 +23,4 @@ public class UsuarioResponseDto {
     private String rol;
     private Boolean isOnline;
 }
+

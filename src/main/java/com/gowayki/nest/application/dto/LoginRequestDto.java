@@ -15,3 +15,4 @@ public class LoginRequestDto {
     private String dni;
     private String pin;
 }
+

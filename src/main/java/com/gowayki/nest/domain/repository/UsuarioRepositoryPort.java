@@ -13,3 +13,4 @@ public interface UsuarioRepositoryPort {
     boolean existsByTelefono(String telefono);
     UsuarioModel save(UsuarioModel usuario);
 }
+

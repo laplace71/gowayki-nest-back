@@ -14,3 +14,4 @@ public interface SpringDataUsuarioRepository extends JpaRepository<Usuario, UUID
     boolean existsByDni(String dni);
     boolean existsByTelefono(String telefono);
 }
+

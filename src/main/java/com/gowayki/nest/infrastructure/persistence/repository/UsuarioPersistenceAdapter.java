@@ -56,3 +56,4 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
         return usuarioMapper.toDomain(guardado);
     }
 }
+
