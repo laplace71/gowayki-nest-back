@@ -45,6 +45,31 @@ public class DataSeeder implements CommandLineRunner {
 
             System.out.println(">>> [DataSeeder] ¡Rutas de prueba sembradas con éxito!");
         }
+
+        Integer unidadCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM unidad", Integer.class);
+        if (unidadCount != null && unidadCount == 0) {
+            System.out.println(">>> [DataSeeder] Sembrando combis/unidades y telemetría GPS...");
+
+            jdbcTemplate.execute(
+                "INSERT INTO unidad (id, numero_padron, placa, linea_id, estado) VALUES " +
+                "(1, '08', 'V1A-954', 1, 'OPERATIVA'), " +
+                "(2, '03', 'A3B-112', 1, 'OPERATIVA'), " +
+                "(3, '15', 'V4C-889', 2, 'OPERATIVA') " +
+                "ON CONFLICT (id) DO NOTHING;"
+            );
+
+            jdbcTemplate.execute("SELECT setval('unidad_id_seq', (SELECT COALESCE(MAX(id), 1) FROM unidad));");
+
+            jdbcTemplate.execute(
+                "INSERT INTO unidad_posicion (unidad_id, posicion, velocidad_kmh, rumbo_grados, updated_at) VALUES " +
+                "(1, ST_SetSRID(ST_MakePoint(-71.548, -16.420), 4326), 25.5, 135, NOW()), " +
+                "(2, ST_SetSRID(ST_MakePoint(-71.537, -16.409), 4326), 18.0, 140, NOW()), " +
+                "(3, ST_SetSRID(ST_MakePoint(-71.545, -16.390), 4326), 30.0, 90, NOW()) " +
+                "ON CONFLICT (unidad_id) DO NOTHING;"
+            );
+
+            System.out.println(">>> [DataSeeder] ¡Unidades y GPS sembrados con éxito!");
+        }
     }
 }
 
