@@ -40,3 +40,5 @@ out/
 # Variables de entorno
 .env
 .env.local
+
+uploads/
