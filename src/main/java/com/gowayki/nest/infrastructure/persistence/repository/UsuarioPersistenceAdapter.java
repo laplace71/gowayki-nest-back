@@ -6,6 +6,7 @@ import com.gowayki.nest.infrastructure.persistence.entity.Usuario;
 import com.gowayki.nest.infrastructure.persistence.mapper.UsuarioMapper;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -54,6 +55,13 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
         Usuario entity = usuarioMapper.toEntity(usuario);
         Usuario guardado = springDataUsuarioRepository.save(entity);
         return usuarioMapper.toDomain(guardado);
+    }
+
+    @Override
+    public List<UsuarioModel> findAll() {
+        return springDataUsuarioRepository.findAll().stream()
+                .map(usuarioMapper::toDomain)
+                .toList();
     }
 }
 
