@@ -26,3 +26,4 @@ public class MensajeResponseDto {
     private String estado;
     private OffsetDateTime createdAt;
 }
+

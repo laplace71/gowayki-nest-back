@@ -12,3 +12,4 @@ public interface MensajeRepositoryPort {
     Optional<MensajeModel> findUltimoMensaje(UUID conversacionId);
     int contarMensajes(UUID conversacionId);
 }
+

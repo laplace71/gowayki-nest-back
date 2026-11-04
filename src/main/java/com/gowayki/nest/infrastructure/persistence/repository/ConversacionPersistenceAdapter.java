@@ -79,3 +79,4 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
         return participanteRepository.existsByIdConversacionIdAndIdChoferId(conversacionId, usuarioId);
     }
 }
+

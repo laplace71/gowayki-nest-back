@@ -21,3 +21,4 @@ public class ConversacionModel {
     private UUID createdBy;
     private OffsetDateTime createdAt;
 }
+

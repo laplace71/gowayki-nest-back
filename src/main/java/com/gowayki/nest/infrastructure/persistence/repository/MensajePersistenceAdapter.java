@@ -63,3 +63,4 @@ public class MensajePersistenceAdapter implements MensajeRepositoryPort {
         return mensajeRepository.countByConversacionId(conversacionId);
     }
 }
+

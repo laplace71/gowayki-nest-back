@@ -17,3 +17,4 @@ public class EnviarMensajeTextoRequestDto {
     private UUID emisorId;
     private String contenidoTexto;
 }
+
