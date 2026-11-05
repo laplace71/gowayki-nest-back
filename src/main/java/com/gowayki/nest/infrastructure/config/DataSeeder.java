@@ -91,5 +91,22 @@ public class DataSeeder implements CommandLineRunner {
 
             System.out.println(">>> [DataSeeder] ¡Usuario chofer (DNI: 71234567, PIN: 1234) sembrado con éxito!");
         }
+
+        Integer turnoCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM asignacion_turno", Integer.class);
+        if (turnoCount != null && turnoCount == 0) {
+            String choferIdStr = jdbcTemplate.queryForObject(
+                "SELECT id::text FROM usuario WHERE dni = '71234567' LIMIT 1", String.class
+            );
+            if (choferIdStr != null) {
+                System.out.println(">>> [DataSeeder] Sembrando turno de prueba para el chofer...");
+                jdbcTemplate.update(
+                    "INSERT INTO asignacion_turno (id, chofer_id, unidad_id, fecha, hora_inicio, estado, porcentaje_cumplimiento, created_at) VALUES " +
+                    "(gen_random_uuid(), ?::uuid, 1, CURRENT_DATE, NOW(), 'EN_RUTA', 0.0, NOW()) " +
+                    "ON CONFLICT DO NOTHING;",
+                    choferIdStr
+                );
+                System.out.println(">>> [DataSeeder] ¡Turno activo sembrado con éxito!");
+            }
+        }
     }
 }
