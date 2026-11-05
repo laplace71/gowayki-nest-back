@@ -26,3 +26,4 @@ public class MensajeModel {
     private String estado;
     private OffsetDateTime createdAt;
 }
+

@@ -21,3 +21,4 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
 
     int countByConversacionId(UUID conversacionId);
 }
+

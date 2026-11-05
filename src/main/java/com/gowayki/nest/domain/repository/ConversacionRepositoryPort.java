@@ -12,3 +12,4 @@ public interface ConversacionRepositoryPort {
     List<ConversacionModel> findByUsuarioId(UUID usuarioId);
     boolean existeParticipante(UUID conversacionId, UUID usuarioId);
 }
+

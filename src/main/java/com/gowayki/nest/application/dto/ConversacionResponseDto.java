@@ -23,3 +23,4 @@ public class ConversacionResponseDto {
     private Integer totalMensajes;
     private MensajeResponseDto ultimoMensaje;
 }
+

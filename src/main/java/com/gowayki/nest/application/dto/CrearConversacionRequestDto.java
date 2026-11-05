@@ -20,3 +20,4 @@ public class CrearConversacionRequestDto {
     private UUID createdBy;
     private List<UUID> participanteIds;
 }
+
