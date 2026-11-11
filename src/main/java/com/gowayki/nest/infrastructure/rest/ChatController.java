@@ -2,6 +2,7 @@ package com.gowayki.nest.infrastructure.rest;
 
 import com.gowayki.nest.application.dto.*;
 import com.gowayki.nest.application.usecase.*;
+import com.gowayki.nest.infrastructure.websocket.ChatWebSocketHandler;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -23,17 +24,20 @@ public class ChatController {
     private final EnviarMensajeAudioUseCase enviarMensajeAudioUseCase;
     private final ObtenerMensajesUseCase obtenerMensajesUseCase;
     private final ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase;
+    private final ChatWebSocketHandler chatWebSocketHandler;
 
     public ChatController(CrearConversacionUseCase crearConversacionUseCase,
                           EnviarMensajeTextoUseCase enviarMensajeTextoUseCase,
                           EnviarMensajeAudioUseCase enviarMensajeAudioUseCase,
                           ObtenerMensajesUseCase obtenerMensajesUseCase,
-                          ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase) {
+                          ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase,
+                          ChatWebSocketHandler chatWebSocketHandler) {
         this.crearConversacionUseCase = crearConversacionUseCase;
         this.enviarMensajeTextoUseCase = enviarMensajeTextoUseCase;
         this.enviarMensajeAudioUseCase = enviarMensajeAudioUseCase;
         this.obtenerMensajesUseCase = obtenerMensajesUseCase;
         this.listarConversacionesUsuarioUseCase = listarConversacionesUsuarioUseCase;
+        this.chatWebSocketHandler = chatWebSocketHandler;
     }
 
     @PostMapping("/conversaciones")
@@ -69,6 +73,7 @@ public class ChatController {
                                                 @RequestBody EnviarMensajeTextoRequestDto request) {
         try {
             MensajeResponseDto response = enviarMensajeTextoUseCase.ejecutar(conversacionId, request);
+            chatWebSocketHandler.emitirMensaje(response);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));
@@ -98,6 +103,7 @@ public class ChatController {
             MensajeResponseDto response = enviarMensajeAudioUseCase.ejecutar(
                     conversacionId, emisorId, bytes, extension, duracionSegundos
             );
+            chatWebSocketHandler.emitirMensaje(response);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
