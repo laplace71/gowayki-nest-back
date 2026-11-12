@@ -29,7 +29,7 @@ public class CrearConversacionUseCase {
             throw new IllegalArgumentException("El usuario creador no existe.");
         }
 
-        if (Boolean.TRUE.equals(request.getEsGrupo()) && request.getTitulo() != null && !request.getTitulo().isBlank()) {
+        if (Boolean.TRUE.equals(request.getEsGrupo()) && request.getTitulo() != null && !request.getTitulo().isBlank() && request.getTitulo().trim().startsWith("GRUPO · ")) {
             java.util.Optional<ConversacionModel> existenteOpt = conversacionRepositoryPort.findByTitulo(request.getTitulo().trim());
             if (existenteOpt.isPresent()) {
                 ConversacionModel existente = existenteOpt.get();

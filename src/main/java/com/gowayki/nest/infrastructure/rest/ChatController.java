@@ -44,6 +44,7 @@ public class ChatController {
     public ResponseEntity<?> crearConversacion(@RequestBody CrearConversacionRequestDto request) {
         try {
             ConversacionResponseDto response = crearConversacionUseCase.ejecutar(request);
+            chatWebSocketHandler.emitirMensaje(response);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));

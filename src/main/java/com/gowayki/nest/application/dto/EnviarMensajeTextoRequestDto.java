@@ -16,5 +16,11 @@ import java.util.UUID;
 public class EnviarMensajeTextoRequestDto {
     private UUID emisorId;
     private String contenidoTexto;
+
+    public void setContenido(String contenido) {
+        if (this.contenidoTexto == null || this.contenidoTexto.isBlank()) {
+            this.contenidoTexto = contenido;
+        }
+    }
 }
 
