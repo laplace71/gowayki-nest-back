@@ -14,5 +14,7 @@ public interface SpringDataConversacionRepository extends JpaRepository<Conversa
 
     @Query("SELECT c FROM Conversacion c JOIN ConversacionParticipante cp ON cp.conversacion.id = c.id WHERE cp.chofer.id = :usuarioId ORDER BY c.createdAt DESC")
     List<Conversacion> findByUsuarioId(@Param("usuarioId") UUID usuarioId);
+
+    java.util.Optional<Conversacion> findFirstByTitulo(String titulo);
 }
 

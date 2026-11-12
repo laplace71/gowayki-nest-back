@@ -11,5 +11,8 @@ public interface ConversacionRepositoryPort {
     Optional<ConversacionModel> findById(UUID id);
     List<ConversacionModel> findByUsuarioId(UUID usuarioId);
     boolean existeParticipante(UUID conversacionId, UUID usuarioId);
+    Optional<ConversacionModel> findByTitulo(String titulo);
+    void agregarParticipante(UUID conversacionId, UUID usuarioId);
+    int contarParticipantes(UUID conversacionId);
 }
 

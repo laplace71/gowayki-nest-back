@@ -29,6 +29,7 @@ public class ListarConversacionesUsuarioUseCase {
 
         return conversaciones.stream().map(c -> {
             int total = mensajeRepositoryPort.contarMensajes(c.getId());
+            int participantesCount = conversacionRepositoryPort.contarParticipantes(c.getId());
             Optional<MensajeModel> ultimoOpt = mensajeRepositoryPort.findUltimoMensaje(c.getId());
 
             MensajeResponseDto ultimoDto = ultimoOpt.map(m -> MensajeResponseDto.builder()
@@ -52,6 +53,7 @@ public class ListarConversacionesUsuarioUseCase {
                     .createdAt(c.getCreatedAt())
                     .totalMensajes(total)
                     .ultimoMensaje(ultimoDto)
+                    .totalParticipantes(participantesCount)
                     .build();
         }).toList();
     }

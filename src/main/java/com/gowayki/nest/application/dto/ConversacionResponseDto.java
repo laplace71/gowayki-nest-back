@@ -22,5 +22,6 @@ public class ConversacionResponseDto {
     private OffsetDateTime createdAt;
     private Integer totalMensajes;
     private MensajeResponseDto ultimoMensaje;
+    private Integer totalParticipantes;
 }
 

@@ -78,5 +78,34 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
     public boolean existeParticipante(UUID conversacionId, UUID usuarioId) {
         return participanteRepository.existsByIdConversacionIdAndIdChoferId(conversacionId, usuarioId);
     }
+
+    @Override
+    public Optional<ConversacionModel> findByTitulo(String titulo) {
+        return conversacionRepository.findFirstByTitulo(titulo).map(conversacionMapper::toDomain);
+    }
+
+    @Override
+    @Transactional
+    public void agregarParticipante(UUID conversacionId, UUID usuarioId) {
+        if (!participanteRepository.existsByIdConversacionIdAndIdChoferId(conversacionId, usuarioId)) {
+            Conversacion conversacion = conversacionRepository.findById(conversacionId).orElse(null);
+            Usuario user = usuarioRepository.findById(usuarioId).orElse(null);
+            if (conversacion != null && user != null) {
+                ConversacionParticipanteId cpId = new ConversacionParticipanteId(conversacionId, usuarioId);
+                ConversacionParticipante cp = ConversacionParticipante.builder()
+                        .id(cpId)
+                        .conversacion(conversacion)
+                        .chofer(user)
+                        .rol("MIEMBRO")
+                        .build();
+                participanteRepository.save(cp);
+            }
+        }
+    }
+
+    @Override
+    public int contarParticipantes(UUID conversacionId) {
+        return (int) participanteRepository.countByIdConversacionId(conversacionId);
+    }
 }
 

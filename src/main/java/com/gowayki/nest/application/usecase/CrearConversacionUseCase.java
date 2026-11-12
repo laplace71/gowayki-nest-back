@@ -29,6 +29,32 @@ public class CrearConversacionUseCase {
             throw new IllegalArgumentException("El usuario creador no existe.");
         }
 
+        if (Boolean.TRUE.equals(request.getEsGrupo()) && request.getTitulo() != null && !request.getTitulo().isBlank()) {
+            java.util.Optional<ConversacionModel> existenteOpt = conversacionRepositoryPort.findByTitulo(request.getTitulo().trim());
+            if (existenteOpt.isPresent()) {
+                ConversacionModel existente = existenteOpt.get();
+                if (request.getCreatedBy() != null) {
+                    conversacionRepositoryPort.agregarParticipante(existente.getId(), request.getCreatedBy());
+                }
+                if (request.getParticipanteIds() != null) {
+                    for (UUID pId : request.getParticipanteIds()) {
+                        conversacionRepositoryPort.agregarParticipante(existente.getId(), pId);
+                    }
+                }
+                int count = conversacionRepositoryPort.contarParticipantes(existente.getId());
+                return ConversacionResponseDto.builder()
+                        .id(existente.getId())
+                        .titulo(existente.getTitulo())
+                        .esGrupo(existente.getEsGrupo())
+                        .createdBy(existente.getCreatedBy())
+                        .createdAt(existente.getCreatedAt())
+                        .totalMensajes(0)
+                        .ultimoMensaje(null)
+                        .totalParticipantes(count)
+                        .build();
+            }
+        }
+
         List<UUID> participantes = new ArrayList<>();
         if (request.getParticipanteIds() != null) {
             participantes.addAll(request.getParticipanteIds());
@@ -45,6 +71,7 @@ public class CrearConversacionUseCase {
                 .build();
 
         ConversacionModel guardado = conversacionRepositoryPort.save(model, participantes);
+        int count = conversacionRepositoryPort.contarParticipantes(guardado.getId());
 
         return ConversacionResponseDto.builder()
                 .id(guardado.getId())
@@ -54,6 +81,7 @@ public class CrearConversacionUseCase {
                 .createdAt(guardado.getCreatedAt())
                 .totalMensajes(0)
                 .ultimoMensaje(null)
+                .totalParticipantes(count)
                 .build();
     }
 }
