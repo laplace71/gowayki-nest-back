@@ -1,9 +1,8 @@
 package com.gowayki.nest.domain.repository;
 
-import com.gowayki.nest.domain.model.AlertaIncidenciaModel;
-
 import java.util.List;
-import java.util.UUID;
+
+import com.gowayki.nest.domain.model.AlertaIncidenciaModel;
 
 public interface AlertaIncidenciaRepositoryPort {
     AlertaIncidenciaModel save(AlertaIncidenciaModel alerta);

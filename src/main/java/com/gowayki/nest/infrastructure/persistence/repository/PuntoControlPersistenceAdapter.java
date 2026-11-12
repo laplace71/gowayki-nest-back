@@ -1,12 +1,12 @@
 package com.gowayki.nest.infrastructure.persistence.repository;
 
-import com.gowayki.nest.domain.model.PuntoControlModel;
-import com.gowayki.nest.domain.repository.PuntoControlRepositoryPort;
-import com.gowayki.nest.infrastructure.persistence.entity.PuntoControl;
-import com.gowayki.nest.infrastructure.persistence.mapper.PuntoControlMapper;
+import java.util.List;
+
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import com.gowayki.nest.domain.model.PuntoControlModel;
+import com.gowayki.nest.domain.repository.PuntoControlRepositoryPort;
+import com.gowayki.nest.infrastructure.persistence.mapper.PuntoControlMapper;
 
 @Component
 public class PuntoControlPersistenceAdapter implements PuntoControlRepositoryPort {

@@ -1,16 +1,16 @@
 package com.gowayki.nest.application.usecase;
 
+import java.time.OffsetDateTime;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+
 import com.gowayki.nest.application.dto.AlertaSosResponseDto;
 import com.gowayki.nest.application.dto.CrearAlertaSosRequestDto;
 import com.gowayki.nest.domain.model.AlertaIncidenciaModel;
 import com.gowayki.nest.domain.repository.AlertaIncidenciaRepositoryPort;
 import com.gowayki.nest.domain.repository.UnidadRepositoryPort;
 import com.gowayki.nest.domain.repository.UsuarioRepositoryPort;
-import org.springframework.stereotype.Service;
-
-import java.time.OffsetDateTime;
-import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class CrearAlertaSosUseCase {

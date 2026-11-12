@@ -1,15 +1,13 @@
 package com.gowayki.nest.infrastructure.persistence.repository;
 
+import java.util.List;
+
+import org.springframework.stereotype.Component;
+
 import com.gowayki.nest.domain.model.AlertaIncidenciaModel;
 import com.gowayki.nest.domain.repository.AlertaIncidenciaRepositoryPort;
 import com.gowayki.nest.infrastructure.persistence.entity.AlertaIncidencia;
-import com.gowayki.nest.infrastructure.persistence.entity.Unidad;
-import com.gowayki.nest.infrastructure.persistence.entity.Usuario;
 import com.gowayki.nest.infrastructure.persistence.mapper.AlertaIncidenciaMapper;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.UUID;
 
 @Component
 public class AlertaIncidenciaPersistenceAdapter implements AlertaIncidenciaRepositoryPort {
