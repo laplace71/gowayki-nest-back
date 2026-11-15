@@ -12,6 +12,9 @@ import lombok.Setter;
 @AllArgsConstructor
 @Builder
 public class PosicionGpsDto {
+    private Integer unidadId;
+    private Integer lineaId;
+    private String numeroPadron;
     private Double latitud;
     private Double longitud;
     private Double velocidadKmh;

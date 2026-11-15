@@ -22,9 +22,11 @@ public class ActualizarPosicionGpsUseCase {
     }
 
     public PosicionGpsDto ejecutar(Integer unidadId, ActualizarPosicionGpsRequestDto request) {
-        if (unidadRepositoryPort.findById(unidadId).isEmpty()) {
+        var unidadOpt = unidadRepositoryPort.findById(unidadId);
+        if (unidadOpt.isEmpty()) {
             throw new IllegalArgumentException("No existe unidad con ese id.");
         }
+        var unidad = unidadOpt.get();
         if (request.getLatitud() == null || request.getLongitud() == null) {
             throw new IllegalArgumentException("La latitud y longitud son obligatorias.");
         }
@@ -43,6 +45,9 @@ public class ActualizarPosicionGpsUseCase {
         UnidadPosicionModel guardado = unidadPosicionRepositoryPort.save(model);
 
         return PosicionGpsDto.builder()
+                .unidadId(unidadId)
+                .lineaId(unidad.getLineaId())
+                .numeroPadron(unidad.getNumeroPadron())
                 .latitud(guardado.getLatitud())
                 .longitud(guardado.getLongitud())
                 .velocidadKmh(guardado.getVelocidadKmh())

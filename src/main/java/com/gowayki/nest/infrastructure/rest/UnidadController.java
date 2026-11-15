@@ -5,6 +5,7 @@ import com.gowayki.nest.application.dto.UnidadResponseDto;
 import com.gowayki.nest.application.dto.ActualizarPosicionGpsRequestDto;
 import com.gowayki.nest.application.usecase.ActualizarPosicionGpsUseCase;
 import com.gowayki.nest.application.usecase.ObtenerUnidadesUseCase;
+import com.gowayki.nest.infrastructure.websocket.ChatWebSocketHandler;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,11 +18,14 @@ public class UnidadController {
 
     private final ObtenerUnidadesUseCase obtenerUnidadesUseCase;
     private final ActualizarPosicionGpsUseCase actualizarPosicionGpsUseCase;
+    private final ChatWebSocketHandler chatWebSocketHandler;
 
     public UnidadController(ObtenerUnidadesUseCase obtenerUnidadesUseCase,
-                            ActualizarPosicionGpsUseCase actualizarPosicionGpsUseCase) {
+                            ActualizarPosicionGpsUseCase actualizarPosicionGpsUseCase,
+                            ChatWebSocketHandler chatWebSocketHandler) {
         this.obtenerUnidadesUseCase = obtenerUnidadesUseCase;
         this.actualizarPosicionGpsUseCase = actualizarPosicionGpsUseCase;
+        this.chatWebSocketHandler = chatWebSocketHandler;
     }
 
     @GetMapping("/unidades")
@@ -44,7 +48,9 @@ public class UnidadController {
     @PutMapping("/unidades/{id}/posicion")
     public ResponseEntity<PosicionGpsDto> actualizarPosicion(@PathVariable Integer id,
                                                              @RequestBody ActualizarPosicionGpsRequestDto request) {
-        return ResponseEntity.ok(actualizarPosicionGpsUseCase.ejecutar(id, request));
+        PosicionGpsDto response = actualizarPosicionGpsUseCase.ejecutar(id, request);
+        chatWebSocketHandler.emitirMensaje(response);
+        return ResponseEntity.ok(response);
     }
 }
 
