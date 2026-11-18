@@ -22,6 +22,9 @@ public interface ConversacionRepositoryPort {
     /** Saca al usuario de la conversación (lo que en la app es "Salir del grupo"). */
     void quitarParticipante(UUID conversacionId, UUID usuarioId);
 
+    /** Cambia el rol de un participante dentro de la conversación (ADMIN o MIEMBRO). */
+    void cambiarRol(UUID conversacionId, UUID usuarioId, String nuevoRol);
+
     /**
      * Borra la conversación y, por las FK ON DELETE CASCADE de la base, sus
      * participantes y mensajes.

@@ -135,6 +135,16 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
 
     @Override
     @Transactional
+    public void cambiarRol(UUID conversacionId, UUID usuarioId, String nuevoRol) {
+        ConversacionParticipante participante = participanteRepository
+                .findById(new ConversacionParticipanteId(conversacionId, usuarioId))
+                .orElseThrow(() -> new IllegalArgumentException("El usuario no forma parte de esta conversación."));
+        participante.setRol(nuevoRol);
+        participanteRepository.save(participante);
+    }
+
+    @Override
+    @Transactional
     public void eliminar(UUID conversacionId) {
         // Participantes y mensajes se van solos: las dos FK son ON DELETE CASCADE.
         conversacionRepository.deleteById(conversacionId);

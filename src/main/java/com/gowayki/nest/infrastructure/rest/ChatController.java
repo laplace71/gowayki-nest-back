@@ -26,6 +26,7 @@ public class ChatController {
     private final ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase;
     private final EliminarConversacionUseCase eliminarConversacionUseCase;
     private final SalirConversacionUseCase salirConversacionUseCase;
+    private final AsignarRolParticipanteUseCase asignarRolParticipanteUseCase;
     private final ChatWebSocketHandler chatWebSocketHandler;
 
     public ChatController(CrearConversacionUseCase crearConversacionUseCase,
@@ -35,6 +36,7 @@ public class ChatController {
                           ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase,
                           EliminarConversacionUseCase eliminarConversacionUseCase,
                           SalirConversacionUseCase salirConversacionUseCase,
+                          AsignarRolParticipanteUseCase asignarRolParticipanteUseCase,
                           ChatWebSocketHandler chatWebSocketHandler) {
         this.crearConversacionUseCase = crearConversacionUseCase;
         this.enviarMensajeTextoUseCase = enviarMensajeTextoUseCase;
@@ -43,6 +45,7 @@ public class ChatController {
         this.listarConversacionesUsuarioUseCase = listarConversacionesUsuarioUseCase;
         this.eliminarConversacionUseCase = eliminarConversacionUseCase;
         this.salirConversacionUseCase = salirConversacionUseCase;
+        this.asignarRolParticipanteUseCase = asignarRolParticipanteUseCase;
         this.chatWebSocketHandler = chatWebSocketHandler;
     }
 
@@ -81,6 +84,23 @@ public class ChatController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("exito", false, "mensaje", "Error al salir de la conversación: " + e.getMessage()));
+        }
+    }
+
+    /** Cambia el rol de un participante (ADMIN o MIEMBRO). Solo un admin/creador puede hacerlo. */
+    @PutMapping("/conversaciones/{conversacionId}/participantes/{miembroId}/rol")
+    public ResponseEntity<?> asignarRol(@PathVariable UUID conversacionId,
+                                        @PathVariable UUID miembroId,
+                                        @RequestParam(required = false) UUID usuarioId,
+                                        @RequestParam String rol) {
+        try {
+            asignarRolParticipanteUseCase.ejecutar(conversacionId, usuarioId, miembroId, rol);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("exito", false, "mensaje", "Error al cambiar el rol: " + e.getMessage()));
         }
     }
 
