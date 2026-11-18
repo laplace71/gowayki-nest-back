@@ -144,6 +144,19 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
     }
 
     @Override
+    public java.util.List<com.gowayki.nest.domain.model.ParticipanteConversacion> listarParticipantes(UUID conversacionId) {
+        return participanteRepository.findAllByIdConversacionId(conversacionId).stream()
+                .map(p -> com.gowayki.nest.domain.model.ParticipanteConversacion.builder()
+                        .userId(p.getChofer() != null ? p.getChofer().getId() : null)
+                        .nombre(p.getChofer() != null ? p.getChofer().getNombre() : null)
+                        .rol(p.getRol())
+                        .fotoUrl(p.getChofer() != null ? p.getChofer().getFotoUrl() : null)
+                        .isOnline(p.getChofer() != null ? p.getChofer().getIsOnline() : null)
+                        .build())
+                .toList();
+    }
+
+    @Override
     @Transactional
     public void eliminar(UUID conversacionId) {
         // Participantes y mensajes se van solos: las dos FK son ON DELETE CASCADE.

@@ -27,6 +27,7 @@ public class ChatController {
     private final EliminarConversacionUseCase eliminarConversacionUseCase;
     private final SalirConversacionUseCase salirConversacionUseCase;
     private final AsignarRolParticipanteUseCase asignarRolParticipanteUseCase;
+    private final ListarParticipantesConversacionUseCase listarParticipantesConversacionUseCase;
     private final ChatWebSocketHandler chatWebSocketHandler;
 
     public ChatController(CrearConversacionUseCase crearConversacionUseCase,
@@ -37,6 +38,7 @@ public class ChatController {
                           EliminarConversacionUseCase eliminarConversacionUseCase,
                           SalirConversacionUseCase salirConversacionUseCase,
                           AsignarRolParticipanteUseCase asignarRolParticipanteUseCase,
+                          ListarParticipantesConversacionUseCase listarParticipantesConversacionUseCase,
                           ChatWebSocketHandler chatWebSocketHandler) {
         this.crearConversacionUseCase = crearConversacionUseCase;
         this.enviarMensajeTextoUseCase = enviarMensajeTextoUseCase;
@@ -46,6 +48,7 @@ public class ChatController {
         this.eliminarConversacionUseCase = eliminarConversacionUseCase;
         this.salirConversacionUseCase = salirConversacionUseCase;
         this.asignarRolParticipanteUseCase = asignarRolParticipanteUseCase;
+        this.listarParticipantesConversacionUseCase = listarParticipantesConversacionUseCase;
         this.chatWebSocketHandler = chatWebSocketHandler;
     }
 
@@ -126,6 +129,19 @@ public class ChatController {
     @GetMapping("/usuarios/{usuarioId}/conversaciones")
     public ResponseEntity<List<ConversacionResponseDto>> listarConversaciones(@PathVariable UUID usuarioId) {
         return ResponseEntity.ok(listarConversacionesUsuarioUseCase.ejecutar(usuarioId));
+    }
+
+    @GetMapping("/conversaciones/{conversacionId}/participantes")
+    public ResponseEntity<?> listarParticipantes(@PathVariable UUID conversacionId,
+                                                 @RequestParam(required = false) UUID usuarioId) {
+        try {
+            return ResponseEntity.ok(listarParticipantesConversacionUseCase.ejecutar(conversacionId, usuarioId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("exito", false, "mensaje", "Error al listar participantes: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/conversaciones/{conversacionId}/mensajes")

@@ -25,6 +25,9 @@ public interface ConversacionRepositoryPort {
     /** Cambia el rol de un participante dentro de la conversación (ADMIN o MIEMBRO). */
     void cambiarRol(UUID conversacionId, UUID usuarioId, String nuevoRol);
 
+    /** Lista los participantes de la conversación (id, nombre, rol). */
+    java.util.List<com.gowayki.nest.domain.model.ParticipanteConversacion> listarParticipantes(UUID conversacionId);
+
     /**
      * Borra la conversación y, por las FK ON DELETE CASCADE de la base, sus
      * participantes y mensajes.
