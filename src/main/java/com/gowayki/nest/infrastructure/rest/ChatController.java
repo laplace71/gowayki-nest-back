@@ -25,6 +25,7 @@ public class ChatController {
     private final ObtenerMensajesUseCase obtenerMensajesUseCase;
     private final ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase;
     private final EliminarConversacionUseCase eliminarConversacionUseCase;
+    private final SalirConversacionUseCase salirConversacionUseCase;
     private final ChatWebSocketHandler chatWebSocketHandler;
 
     public ChatController(CrearConversacionUseCase crearConversacionUseCase,
@@ -33,6 +34,7 @@ public class ChatController {
                           ObtenerMensajesUseCase obtenerMensajesUseCase,
                           ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase,
                           EliminarConversacionUseCase eliminarConversacionUseCase,
+                          SalirConversacionUseCase salirConversacionUseCase,
                           ChatWebSocketHandler chatWebSocketHandler) {
         this.crearConversacionUseCase = crearConversacionUseCase;
         this.enviarMensajeTextoUseCase = enviarMensajeTextoUseCase;
@@ -40,6 +42,7 @@ public class ChatController {
         this.obtenerMensajesUseCase = obtenerMensajesUseCase;
         this.listarConversacionesUsuarioUseCase = listarConversacionesUsuarioUseCase;
         this.eliminarConversacionUseCase = eliminarConversacionUseCase;
+        this.salirConversacionUseCase = salirConversacionUseCase;
         this.chatWebSocketHandler = chatWebSocketHandler;
     }
 
@@ -54,6 +57,30 @@ public class ChatController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("exito", false, "mensaje", "Error al crear conversación: " + e.getMessage()));
+        }
+    }
+
+    /** Saca al usuario de la conversación. No la borra para los demás. */
+    @PostMapping("/conversaciones/{conversacionId}/salir")
+    public ResponseEntity<?> salirConversacion(@PathVariable UUID conversacionId,
+                                               @RequestParam(required = false) UUID usuarioId) {
+        try {
+            boolean eliminada = salirConversacionUseCase.ejecutar(conversacionId, usuarioId);
+            // Solo si el grupo quedó vacío y se eliminó entero tiene sentido avisar
+            // a todos. Si no, el grupo sigue existiendo para los demás miembros y
+            // quien salió ya lo quita de su lista con la respuesta de esta llamada.
+            if (eliminada) {
+                chatWebSocketHandler.emitirEvento(Map.of(
+                        "tipo", "CONVERSACION_ELIMINADA",
+                        "conversacionId", conversacionId
+                ));
+            }
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("exito", false, "mensaje", "Error al salir de la conversación: " + e.getMessage()));
         }
     }
 

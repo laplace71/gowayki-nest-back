@@ -54,6 +54,7 @@ public class ListarConversacionesUsuarioUseCase {
                     .totalMensajes(total)
                     .ultimoMensaje(ultimoDto)
                     .totalParticipantes(participantesCount)
+                    .miRol(conversacionRepositoryPort.obtenerRol(c.getId(), usuarioId))
                     .build();
         }).toList();
     }

@@ -117,6 +117,23 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
     }
 
     @Override
+    public String obtenerRol(UUID conversacionId, UUID usuarioId) {
+        return participanteRepository
+                .findById(new ConversacionParticipanteId(conversacionId, usuarioId))
+                .map(ConversacionParticipante::getRol)
+                .orElse(null);
+    }
+
+    @Override
+    @Transactional
+    public void quitarParticipante(UUID conversacionId, UUID usuarioId) {
+        if (!participanteRepository.existsByIdConversacionIdAndIdChoferId(conversacionId, usuarioId)) {
+            throw new IllegalArgumentException("No formas parte de esta conversación.");
+        }
+        participanteRepository.deleteById(new ConversacionParticipanteId(conversacionId, usuarioId));
+    }
+
+    @Override
     @Transactional
     public void eliminar(UUID conversacionId) {
         // Participantes y mensajes se van solos: las dos FK son ON DELETE CASCADE.

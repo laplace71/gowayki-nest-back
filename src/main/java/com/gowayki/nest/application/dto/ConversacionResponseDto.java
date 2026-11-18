@@ -23,5 +23,7 @@ public class ConversacionResponseDto {
     private Integer totalMensajes;
     private MensajeResponseDto ultimoMensaje;
     private Integer totalParticipantes;
+    /** Rol del usuario que pidió la lista dentro de esta conversación (ADMIN, MIEMBRO o null). */
+    private String miRol;
 }
 
