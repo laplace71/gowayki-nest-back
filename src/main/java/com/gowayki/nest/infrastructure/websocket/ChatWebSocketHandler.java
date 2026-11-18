@@ -53,4 +53,9 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         } catch (Exception ignored) {
         }
     }
+
+    /** Difunde un evento que no es un mensaje (por ejemplo, un grupo eliminado). */
+    public void emitirEvento(Object evento) {
+        emitirMensaje(evento);
+    }
 }

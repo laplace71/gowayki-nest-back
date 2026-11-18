@@ -24,6 +24,7 @@ public class ChatController {
     private final EnviarMensajeAudioUseCase enviarMensajeAudioUseCase;
     private final ObtenerMensajesUseCase obtenerMensajesUseCase;
     private final ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase;
+    private final EliminarConversacionUseCase eliminarConversacionUseCase;
     private final ChatWebSocketHandler chatWebSocketHandler;
 
     public ChatController(CrearConversacionUseCase crearConversacionUseCase,
@@ -31,12 +32,14 @@ public class ChatController {
                           EnviarMensajeAudioUseCase enviarMensajeAudioUseCase,
                           ObtenerMensajesUseCase obtenerMensajesUseCase,
                           ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase,
+                          EliminarConversacionUseCase eliminarConversacionUseCase,
                           ChatWebSocketHandler chatWebSocketHandler) {
         this.crearConversacionUseCase = crearConversacionUseCase;
         this.enviarMensajeTextoUseCase = enviarMensajeTextoUseCase;
         this.enviarMensajeAudioUseCase = enviarMensajeAudioUseCase;
         this.obtenerMensajesUseCase = obtenerMensajesUseCase;
         this.listarConversacionesUsuarioUseCase = listarConversacionesUsuarioUseCase;
+        this.eliminarConversacionUseCase = eliminarConversacionUseCase;
         this.chatWebSocketHandler = chatWebSocketHandler;
     }
 
@@ -51,6 +54,25 @@ public class ChatController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("exito", false, "mensaje", "Error al crear conversación: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/conversaciones/{conversacionId}")
+    public ResponseEntity<?> eliminarConversacion(@PathVariable UUID conversacionId,
+                                                  @RequestParam(required = false) UUID usuarioId) {
+        try {
+            eliminarConversacionUseCase.ejecutar(conversacionId, usuarioId);
+            // Avisa a los demás dispositivos para que la quiten de su lista.
+            chatWebSocketHandler.emitirEvento(Map.of(
+                    "tipo", "CONVERSACION_ELIMINADA",
+                    "conversacionId", conversacionId
+            ));
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("exito", false, "mensaje", "Error al eliminar la conversación: " + e.getMessage()));
         }
     }
 

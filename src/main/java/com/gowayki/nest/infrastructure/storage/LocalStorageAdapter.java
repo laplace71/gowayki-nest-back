@@ -53,5 +53,26 @@ public class LocalStorageAdapter implements AudioStoragePort {
             throw new IllegalStateException("Error al leer el archivo de audio", e);
         }
     }
+
+    @Override
+    public void eliminarAudio(String archivoOUrl) {
+        if (archivoOUrl == null || archivoOUrl.isBlank()) {
+            return;
+        }
+        String nombreArchivo = archivoOUrl.substring(archivoOUrl.lastIndexOf('/') + 1);
+        if (nombreArchivo.isBlank()) {
+            return;
+        }
+        try {
+            Path archivo = this.storageDirectory.resolve(nombreArchivo).normalize();
+            // Nunca salir del directorio de audios, aunque venga "../" en el nombre.
+            if (!archivo.startsWith(this.storageDirectory)) {
+                return;
+            }
+            Files.deleteIfExists(archivo);
+        } catch (IOException e) {
+            // Un archivo huérfano no debe tumbar el borrado del grupo.
+        }
+    }
 }
 

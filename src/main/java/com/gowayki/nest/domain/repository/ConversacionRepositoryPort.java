@@ -14,5 +14,12 @@ public interface ConversacionRepositoryPort {
     Optional<ConversacionModel> findByTitulo(String titulo);
     void agregarParticipante(UUID conversacionId, UUID usuarioId);
     int contarParticipantes(UUID conversacionId);
+    boolean esAdministrador(UUID conversacionId, UUID usuarioId);
+
+    /**
+     * Borra la conversación y, por las FK ON DELETE CASCADE de la base, sus
+     * participantes y mensajes.
+     */
+    void eliminar(UUID conversacionId);
 }
 

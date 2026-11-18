@@ -107,5 +107,20 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
     public int contarParticipantes(UUID conversacionId) {
         return (int) participanteRepository.countByIdConversacionId(conversacionId);
     }
+
+    @Override
+    public boolean esAdministrador(UUID conversacionId, UUID usuarioId) {
+        return participanteRepository
+                .findById(new ConversacionParticipanteId(conversacionId, usuarioId))
+                .map(participante -> "ADMIN".equals(participante.getRol()))
+                .orElse(false);
+    }
+
+    @Override
+    @Transactional
+    public void eliminar(UUID conversacionId) {
+        // Participantes y mensajes se van solos: las dos FK son ON DELETE CASCADE.
+        conversacionRepository.deleteById(conversacionId);
+    }
 }
 
