@@ -39,7 +39,7 @@ public class SolicitarEliminacionGrupoUseCase {
             throw new NoAutenticadoException("Se requiere un usuario autenticado.");
         }
 
-        ConversacionModel conversacion = conversacionRepositoryPort.findById(conversacionId)
+        ConversacionModel conversacion = conversacionRepositoryPort.bloquearParaActualizar(conversacionId)
                 .orElseThrow(() -> new IllegalArgumentException("La conversación no existe."));
 
         if (!Boolean.TRUE.equals(conversacion.getEsGrupo())) {

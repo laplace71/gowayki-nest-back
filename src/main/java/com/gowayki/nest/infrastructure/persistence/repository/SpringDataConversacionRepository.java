@@ -1,7 +1,9 @@
 package com.gowayki.nest.infrastructure.persistence.repository;
 
 import com.gowayki.nest.infrastructure.persistence.entity.Conversacion;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -28,5 +30,14 @@ public interface SpringDataConversacionRepository extends JpaRepository<Conversa
     List<Conversacion> findByUsuarioIdSinFiltroOcultas(@Param("usuarioId") UUID usuarioId);
 
     java.util.Optional<Conversacion> findFirstByTitulo(String titulo);
+
+    /**
+     * Bloquea la fila de la conversación hasta el final de la transacción.
+     * Se usa antes de tocar la membresía para que dos peticiones simultáneas no
+     * se pisen (por ejemplo, dos "salir" que dejan el grupo sin nadie).
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM Conversacion c WHERE c.id = :id")
+    java.util.Optional<Conversacion> findByIdForUpdate(@Param("id") UUID id);
 }
 

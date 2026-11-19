@@ -12,6 +12,7 @@ import com.gowayki.nest.infrastructure.persistence.mapper.ConversacionMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -99,21 +100,27 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
     @Override
     @Transactional
     public void agregarParticipante(UUID conversacionId, UUID usuarioId) {
-        if (!participanteRepository.existsByIdConversacionIdAndIdChoferId(conversacionId, usuarioId)) {
-            Conversacion conversacion = conversacionRepository.findById(conversacionId).orElse(null);
-            Usuario user = usuarioRepository.findById(usuarioId).orElse(null);
-            if (conversacion != null && user != null) {
-                ConversacionParticipanteId cpId = new ConversacionParticipanteId(conversacionId, usuarioId);
-                ConversacionParticipante cp = ConversacionParticipante.builder()
-                        .id(cpId)
-                        .conversacion(conversacion)
-                        .chofer(user)
-                        .rol("MIEMBRO")
-                        .build();
-                participanteRepository.save(cp);
-                // Si había ocultado este grupo, al volver a participar debe verlo.
-                limpiarEstadoUsuario(conversacionId, usuarioId);
-            }
+        // Bloquea la conversación: sin esto, dos peticiones simultáneas pueden
+        // pasar ambas la comprobación y chocar con la clave primaria.
+        Conversacion conversacion = conversacionRepository.findByIdForUpdate(conversacionId).orElse(null);
+        if (conversacion == null) {
+            return;
+        }
+        if (participanteRepository.existsByIdConversacionIdAndIdChoferId(conversacionId, usuarioId)) {
+            return;
+        }
+        Usuario user = usuarioRepository.findById(usuarioId).orElse(null);
+        if (user != null) {
+            ConversacionParticipanteId cpId = new ConversacionParticipanteId(conversacionId, usuarioId);
+            ConversacionParticipante cp = ConversacionParticipante.builder()
+                    .id(cpId)
+                    .conversacion(conversacion)
+                    .chofer(user)
+                    .rol("MIEMBRO")
+                    .build();
+            participanteRepository.save(cp);
+            // Si había ocultado este grupo, al volver a participar debe verlo.
+            limpiarEstadoUsuario(conversacionId, usuarioId);
         }
     }
 
@@ -203,6 +210,38 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
     @Transactional
     public void limpiarEstadoUsuario(UUID conversacionId, UUID usuarioId) {
         estadoRepository.deleteById(new ConversacionUsuarioEstadoId(conversacionId, usuarioId));
+    }
+
+    @Override
+    @Transactional
+    public Optional<ConversacionModel> bloquearParaActualizar(UUID conversacionId) {
+        return conversacionRepository.findByIdForUpdate(conversacionId).map(conversacionMapper::toDomain);
+    }
+
+    @Override
+    @Transactional
+    public Optional<UUID> promoverAdministradorSiHaceFalta(UUID conversacionId) {
+        List<ConversacionParticipante> participantes =
+                participanteRepository.findAllByIdConversacionId(conversacionId);
+
+        if (participantes.isEmpty()) {
+            return Optional.empty();
+        }
+        if (participantes.stream().anyMatch(p -> "ADMIN".equals(p.getRol()))) {
+            return Optional.empty();
+        }
+
+        // Determinista: el más antiguo y, a igualdad de fecha, el UUID menor.
+        ConversacionParticipante elegido = participantes.stream()
+                .min(Comparator
+                        .comparing(ConversacionParticipante::getAgregadoEn,
+                                Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(p -> p.getId().getChoferId()))
+                .orElseThrow();
+
+        elegido.setRol("ADMIN");
+        participanteRepository.save(elegido);
+        return Optional.of(elegido.getId().getChoferId());
     }
 }
 

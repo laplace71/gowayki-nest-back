@@ -45,5 +45,18 @@ public interface ConversacionRepositoryPort {
 
     /** Borra el estado personal (al salir del grupo, para que al volver se vea). */
     void limpiarEstadoUsuario(UUID conversacionId, UUID usuarioId);
+
+    /**
+     * Bloquea la conversación para mutar su membresía con seguridad
+     * (`SELECT ... FOR UPDATE`). Debe llamarse dentro de una transacción.
+     */
+    Optional<ConversacionModel> bloquearParaActualizar(UUID conversacionId);
+
+    /**
+     * Si el grupo no tiene ningún administrador, asciende al participante más
+     * antiguo (desempate por UUID) y devuelve su id. Si ya hay administrador o
+     * el grupo está vacío, devuelve vacío.
+     */
+    Optional<UUID> promoverAdministradorSiHaceFalta(UUID conversacionId);
 }
 

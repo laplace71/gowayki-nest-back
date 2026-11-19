@@ -45,7 +45,10 @@ public class SalirConversacionUseCase {
             throw new NoAutenticadoException("Se requiere un usuario autenticado.");
         }
 
-        ConversacionModel conversacion = conversacionRepositoryPort.findById(conversacionId)
+        // Bloqueo de la conversación: evita que dos "salir" simultáneos dejen el
+        // grupo sin nadie y se borre dos veces, o que se pierda la herencia de
+        // administración.
+        ConversacionModel conversacion = conversacionRepositoryPort.bloquearParaActualizar(conversacionId)
                 .orElseThrow(() -> new IllegalArgumentException("La conversación no existe."));
 
         if (!conversacionRepositoryPort.existeParticipante(conversacionId, usuarioId)) {
@@ -68,6 +71,13 @@ public class SalirConversacionUseCase {
             audios.forEach(ruta -> archivoPendienteBorradoPort.encolar(ruta, "GRUPO_VACIO"));
             return true;
         }
+
+        // Si se fue el último administrador, el grupo no puede quedarse sin
+        // nadie que pueda administrarlo: hereda el participante más antiguo.
+        if (Boolean.TRUE.equals(conversacion.getEsGrupo())) {
+            conversacionRepositoryPort.promoverAdministradorSiHaceFalta(conversacionId);
+        }
+
         return false;
     }
 }
