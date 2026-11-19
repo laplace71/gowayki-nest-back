@@ -18,6 +18,9 @@ import java.util.Map;
 @RestControllerAdvice(assignableTypes = ChatController.class)
 public class ChatExceptionHandler {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(ChatExceptionHandler.class);
+
     @ExceptionHandler(NoAutenticadoException.class)
     public ResponseEntity<Map<String, Object>> noAutenticado(NoAutenticadoException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -44,7 +47,10 @@ public class ChatExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> errorInterno(Exception e) {
+        // El detalle queda en el log, no en la respuesta: puede contener datos
+        // internos (consultas, rutas, credenciales de una conexión).
+        log.error("Error no controlado en el chat", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("exito", false, "mensaje", "Error interno: " + e.getMessage()));
+                .body(Map.of("exito", false, "mensaje", "Error interno del servidor."));
     }
 }

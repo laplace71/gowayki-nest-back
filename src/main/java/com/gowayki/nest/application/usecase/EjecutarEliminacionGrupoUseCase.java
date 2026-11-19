@@ -104,6 +104,11 @@ public class EjecutarEliminacionGrupoUseCase {
         if (solicitanteId == null) {
             return false;
         }
+        // Quien pidió el borrado debe seguir dentro del grupo: si se fue, ya no
+        // tiene nada que decidir sobre él.
+        if (!conversacionRepositoryPort.existeParticipante(conversacion.getId(), solicitanteId)) {
+            return false;
+        }
         boolean esCreador = conversacion.getCreatedBy() != null
                 && conversacion.getCreatedBy().equals(solicitanteId);
         return esCreador || conversacionRepositoryPort.esAdministrador(conversacion.getId(), solicitanteId);

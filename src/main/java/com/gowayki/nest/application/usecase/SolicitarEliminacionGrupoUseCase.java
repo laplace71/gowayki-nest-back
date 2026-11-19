@@ -65,6 +65,9 @@ public class SolicitarEliminacionGrupoUseCase {
     }
 
     private void verificarPermiso(ConversacionModel conversacion, UUID solicitanteId) {
+        if (!conversacionRepositoryPort.existeParticipante(conversacion.getId(), solicitanteId)) {
+            throw new AccesoDenegadoException("No formas parte de este grupo.");
+        }
         boolean esCreador = conversacion.getCreatedBy() != null
                 && conversacion.getCreatedBy().equals(solicitanteId);
 

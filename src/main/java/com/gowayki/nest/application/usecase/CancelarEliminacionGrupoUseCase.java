@@ -43,7 +43,8 @@ public class CancelarEliminacionGrupoUseCase {
         boolean esCreador = conversacion.getCreatedBy() != null
                 && conversacion.getCreatedBy().equals(solicitanteId);
         boolean esAdmin = conversacionRepositoryPort.esAdministrador(conversacionId, solicitanteId);
-        if (!esCreador && !esAdmin) {
+        if (!conversacionRepositoryPort.existeParticipante(conversacionId, solicitanteId)
+                || (!esCreador && !esAdmin)) {
             throw new AccesoDenegadoException(
                     "Solo el creador o un administrador del grupo puede cancelar la eliminación.");
         }
