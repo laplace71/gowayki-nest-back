@@ -10,7 +10,11 @@ import java.util.UUID;
 
 public interface SpringDataConversacionRepository extends JpaRepository<Conversacion, UUID> {
 
-    @Query("SELECT c FROM Conversacion c JOIN ConversacionParticipante cp ON cp.conversacion.id = c.id WHERE cp.chofer.id = :usuarioId ORDER BY c.createdAt DESC")
+    @Query("SELECT c FROM Conversacion c JOIN ConversacionParticipante cp ON cp.conversacion.id = c.id " +
+            "WHERE cp.chofer.id = :usuarioId " +
+            "AND NOT EXISTS (SELECT 1 FROM ConversacionUsuarioEstado e " +
+            "                WHERE e.id.conversacionId = c.id AND e.id.usuarioId = :usuarioId AND e.oculta = true) " +
+            "ORDER BY c.createdAt DESC")
     List<Conversacion> findByUsuarioId(@Param("usuarioId") UUID usuarioId);
 
     java.util.Optional<Conversacion> findFirstByTitulo(String titulo);

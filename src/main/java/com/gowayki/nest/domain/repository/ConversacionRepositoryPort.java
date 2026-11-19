@@ -33,5 +33,14 @@ public interface ConversacionRepositoryPort {
      * participantes y mensajes.
      */
     void eliminar(UUID conversacionId);
+
+    /** Oculta la conversación solo para ese usuario. No borra nada. */
+    void ocultarParaUsuario(UUID conversacionId, UUID usuarioId);
+
+    /** Vuelve a mostrar una conversación que el usuario había ocultado. */
+    void mostrarParaUsuario(UUID conversacionId, UUID usuarioId);
+
+    /** Borra el estado personal (al salir del grupo, para que al volver se vea). */
+    void limpiarEstadoUsuario(UUID conversacionId, UUID usuarioId);
 }
 

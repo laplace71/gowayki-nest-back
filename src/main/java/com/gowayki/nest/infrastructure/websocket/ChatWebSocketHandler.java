@@ -1,20 +1,35 @@
 package com.gowayki.nest.infrastructure.websocket;
 
-import tools.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+import org.springframework.web.util.UriComponentsBuilder;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+/**
+ * WebSocket del chat.
+ *
+ * Los eventos personales (ocultar una conversación) solo se envían al usuario
+ * que los provocó; para eso el cliente se identifica al conectar con
+ * `/ws/chat?usuarioId=<uuid>`. Los mensajes nuevos se siguen difundiendo a todos,
+ * como antes.
+ */
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private final List<WebSocketSession> sessions = new CopyOnWriteArrayList<>();
+    /** sesión -> usuario que la abrió (si lo indicó al conectar). */
+    private final Map<String, UUID> usuariosPorSesion = new ConcurrentHashMap<>();
     private final ObjectMapper objectMapper;
 
     public ChatWebSocketHandler(ObjectMapper objectMapper) {
@@ -24,38 +39,81 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) {
         sessions.add(session);
+        usuarioDeLaSesion(session).ifPresent(usuarioId ->
+                usuariosPorSesion.put(session.getId(), usuarioId));
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         sessions.remove(session);
+        usuariosPorSesion.remove(session.getId());
     }
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) {
         sessions.remove(session);
+        usuariosPorSesion.remove(session.getId());
     }
 
     public void emitirMensaje(Object mensajeDto) {
-        try {
-            String json = objectMapper.writeValueAsString(mensajeDto);
-            TextMessage message = new TextMessage(json);
-            for (WebSocketSession session : sessions) {
-                if (session.isOpen()) {
-                    try {
-                        synchronized (session) {
-                            session.sendMessage(message);
-                        }
-                    } catch (IOException ignored) {
-                    }
-                }
-            }
-        } catch (Exception ignored) {
+        enviarATodas(mensajeDto);
+    }
+
+    /** Difunde un evento que no es un mensaje. */
+    public void emitirEvento(Object evento) {
+        enviarATodas(evento);
+    }
+
+    /** Envía un evento únicamente a las sesiones de ese usuario. */
+    public void emitirEventoAUsuario(UUID usuarioId, Object evento) {
+        if (usuarioId == null) return;
+        String json = serializar(evento);
+        if (json == null) return;
+
+        for (Map.Entry<String, UUID> entrada : usuariosPorSesion.entrySet()) {
+            if (!usuarioId.equals(entrada.getValue())) continue;
+            sessions.stream()
+                    .filter(sesion -> sesion.getId().equals(entrada.getKey()))
+                    .findFirst()
+                    .ifPresent(sesion -> enviar(sesion, json));
         }
     }
 
-    /** Difunde un evento que no es un mensaje (por ejemplo, un grupo eliminado). */
-    public void emitirEvento(Object evento) {
-        emitirMensaje(evento);
+    private void enviarATodas(Object payload) {
+        String json = serializar(payload);
+        if (json == null) return;
+        for (WebSocketSession session : sessions) {
+            enviar(session, json);
+        }
+    }
+
+    private void enviar(WebSocketSession session, String json) {
+        if (!session.isOpen()) return;
+        try {
+            synchronized (session) {
+                session.sendMessage(new TextMessage(json));
+            }
+        } catch (IOException ignored) {
+        }
+    }
+
+    private String serializar(Object payload) {
+        try {
+            return objectMapper.writeValueAsString(payload);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private Optional<UUID> usuarioDeLaSesion(WebSocketSession session) {
+        try {
+            String valor = UriComponentsBuilder.fromUri(session.getUri())
+                    .build()
+                    .getQueryParams()
+                    .getFirst("usuarioId");
+            return valor == null || valor.isBlank() ? Optional.empty() : Optional.of(UUID.fromString(valor));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 }

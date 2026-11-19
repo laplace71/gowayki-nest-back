@@ -30,7 +30,8 @@ public class ChatController {
     private final EnviarMensajeAudioUseCase enviarMensajeAudioUseCase;
     private final ObtenerMensajesUseCase obtenerMensajesUseCase;
     private final ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase;
-    private final EliminarConversacionUseCase eliminarConversacionUseCase;
+    private final OcultarConversacionUseCase ocultarConversacionUseCase;
+    private final MostrarConversacionUseCase mostrarConversacionUseCase;
     private final SalirConversacionUseCase salirConversacionUseCase;
     private final AsignarRolParticipanteUseCase asignarRolParticipanteUseCase;
     private final ListarParticipantesConversacionUseCase listarParticipantesConversacionUseCase;
@@ -41,7 +42,8 @@ public class ChatController {
                           EnviarMensajeAudioUseCase enviarMensajeAudioUseCase,
                           ObtenerMensajesUseCase obtenerMensajesUseCase,
                           ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase,
-                          EliminarConversacionUseCase eliminarConversacionUseCase,
+                          OcultarConversacionUseCase ocultarConversacionUseCase,
+                          MostrarConversacionUseCase mostrarConversacionUseCase,
                           SalirConversacionUseCase salirConversacionUseCase,
                           AsignarRolParticipanteUseCase asignarRolParticipanteUseCase,
                           ListarParticipantesConversacionUseCase listarParticipantesConversacionUseCase,
@@ -51,7 +53,8 @@ public class ChatController {
         this.enviarMensajeAudioUseCase = enviarMensajeAudioUseCase;
         this.obtenerMensajesUseCase = obtenerMensajesUseCase;
         this.listarConversacionesUsuarioUseCase = listarConversacionesUsuarioUseCase;
-        this.eliminarConversacionUseCase = eliminarConversacionUseCase;
+        this.ocultarConversacionUseCase = ocultarConversacionUseCase;
+        this.mostrarConversacionUseCase = mostrarConversacionUseCase;
         this.salirConversacionUseCase = salirConversacionUseCase;
         this.asignarRolParticipanteUseCase = asignarRolParticipanteUseCase;
         this.listarParticipantesConversacionUseCase = listarParticipantesConversacionUseCase;
@@ -158,13 +161,34 @@ public class ChatController {
         return ResponseEntity.noContent().build();
     }
 
+    /**
+     * "Eliminar chat" o "eliminar grupo" tal como lo ve el usuario: oculta la
+     * conversación SOLO para él. No borra mensajes, audios, membresía ni la
+     * conversación. Los demás participantes no notan nada.
+     */
     @DeleteMapping("/conversaciones/{conversacionId}")
-    public ResponseEntity<Void> eliminarConversacion(@PathVariable UUID conversacionId,
-                                                     Authentication autenticacion) {
-        eliminarConversacionUseCase.ejecutar(conversacionId, usuario(autenticacion));
-        // Avisa a los demás dispositivos para que la quiten de su lista.
-        chatWebSocketHandler.emitirEvento(Map.of(
-                "tipo", "CONVERSACION_ELIMINADA",
+    public ResponseEntity<Void> ocultarConversacion(@PathVariable UUID conversacionId,
+                                                    Authentication autenticacion) {
+        UUID usuarioId = usuario(autenticacion);
+        ocultarConversacionUseCase.ejecutar(conversacionId, usuarioId);
+
+        // Evento personal: solo sus dispositivos quitan la conversación de la lista.
+        chatWebSocketHandler.emitirEventoAUsuario(usuarioId, Map.of(
+                "tipo", "CONVERSACION_OCULTA",
+                "conversacionId", conversacionId
+        ));
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Deshace la ocultación: la conversación vuelve a la lista del usuario. */
+    @PostMapping("/conversaciones/{conversacionId}/mostrar")
+    public ResponseEntity<Void> mostrarConversacion(@PathVariable UUID conversacionId,
+                                                    Authentication autenticacion) {
+        UUID usuarioId = usuario(autenticacion);
+        mostrarConversacionUseCase.ejecutar(conversacionId, usuarioId);
+
+        chatWebSocketHandler.emitirEventoAUsuario(usuarioId, Map.of(
+                "tipo", "CONVERSACION_MOSTRADA",
                 "conversacionId", conversacionId
         ));
         return ResponseEntity.noContent().build();

@@ -5,6 +5,8 @@ import com.gowayki.nest.domain.repository.ConversacionRepositoryPort;
 import com.gowayki.nest.infrastructure.persistence.entity.Conversacion;
 import com.gowayki.nest.infrastructure.persistence.entity.ConversacionParticipante;
 import com.gowayki.nest.infrastructure.persistence.entity.ConversacionParticipanteId;
+import com.gowayki.nest.infrastructure.persistence.entity.ConversacionUsuarioEstado;
+import com.gowayki.nest.infrastructure.persistence.entity.ConversacionUsuarioEstadoId;
 import com.gowayki.nest.infrastructure.persistence.entity.Usuario;
 import com.gowayki.nest.infrastructure.persistence.mapper.ConversacionMapper;
 import org.springframework.stereotype.Component;
@@ -19,15 +21,18 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
 
     private final SpringDataConversacionRepository conversacionRepository;
     private final SpringDataConversacionParticipanteRepository participanteRepository;
+    private final SpringDataConversacionUsuarioEstadoRepository estadoRepository;
     private final SpringDataUsuarioRepository usuarioRepository;
     private final ConversacionMapper conversacionMapper;
 
     public ConversacionPersistenceAdapter(SpringDataConversacionRepository conversacionRepository,
                                          SpringDataConversacionParticipanteRepository participanteRepository,
+                                         SpringDataConversacionUsuarioEstadoRepository estadoRepository,
                                          SpringDataUsuarioRepository usuarioRepository,
                                          ConversacionMapper conversacionMapper) {
         this.conversacionRepository = conversacionRepository;
         this.participanteRepository = participanteRepository;
+        this.estadoRepository = estadoRepository;
         this.usuarioRepository = usuarioRepository;
         this.conversacionMapper = conversacionMapper;
     }
@@ -99,6 +104,8 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
                         .rol("MIEMBRO")
                         .build();
                 participanteRepository.save(cp);
+                // Si había ocultado este grupo, al volver a participar debe verlo.
+                limpiarEstadoUsuario(conversacionId, usuarioId);
             }
         }
     }
@@ -161,6 +168,34 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
     public void eliminar(UUID conversacionId) {
         // Participantes y mensajes se van solos: las dos FK son ON DELETE CASCADE.
         conversacionRepository.deleteById(conversacionId);
+    }
+
+    @Override
+    @Transactional
+    public void ocultarParaUsuario(UUID conversacionId, UUID usuarioId) {
+        ConversacionUsuarioEstadoId id = new ConversacionUsuarioEstadoId(conversacionId, usuarioId);
+        ConversacionUsuarioEstado estado = estadoRepository.findById(id)
+                .orElseGet(() -> ConversacionUsuarioEstado.builder().id(id).build());
+        estado.setOculta(true);
+        estado.setOcultaEn(java.time.OffsetDateTime.now());
+        estadoRepository.save(estado);
+    }
+
+    @Override
+    @Transactional
+    public void mostrarParaUsuario(UUID conversacionId, UUID usuarioId) {
+        estadoRepository.findById(new ConversacionUsuarioEstadoId(conversacionId, usuarioId))
+                .ifPresent(estado -> {
+                    estado.setOculta(false);
+                    estado.setOcultaEn(null);
+                    estadoRepository.save(estado);
+                });
+    }
+
+    @Override
+    @Transactional
+    public void limpiarEstadoUsuario(UUID conversacionId, UUID usuarioId) {
+        estadoRepository.deleteById(new ConversacionUsuarioEstadoId(conversacionId, usuarioId));
     }
 }
 

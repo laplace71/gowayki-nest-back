@@ -53,6 +53,8 @@ public class SalirConversacionUseCase {
         }
 
         conversacionRepositoryPort.quitarParticipante(conversacionId, usuarioId);
+        // Si había ocultado el grupo, al salir se limpia: si vuelve, debe verlo.
+        conversacionRepositoryPort.limpiarEstadoUsuario(conversacionId, usuarioId);
 
         if (Boolean.TRUE.equals(conversacion.getEsGrupo())
                 && conversacionRepositoryPort.contarParticipantes(conversacionId) == 0) {
