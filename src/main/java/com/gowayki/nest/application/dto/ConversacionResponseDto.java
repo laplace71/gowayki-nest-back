@@ -18,6 +18,10 @@ public class ConversacionResponseDto {
     private UUID id;
     private String titulo;
     private Boolean esGrupo;
+    /** PRIVADA, GRUPO o GRUPO_RUTA. */
+    private String tipoConversacion;
+    /** Subruta concreta cuando el tipo es GRUPO_RUTA. */
+    private String claveRuta;
     private UUID createdBy;
     private OffsetDateTime createdAt;
     private Integer totalMensajes;

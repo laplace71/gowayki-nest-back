@@ -15,6 +15,9 @@ public interface ConversacionRepositoryPort {
     List<ConversacionModel> findByUsuarioIdSinFiltroOcultas(UUID usuarioId);
     boolean existeParticipante(UUID conversacionId, UUID usuarioId);
     Optional<ConversacionModel> findByTitulo(String titulo);
+
+    /** Grupo de subruta por su clave estable (nombre de la subruta). */
+    Optional<ConversacionModel> findByClaveRuta(String claveRuta);
     void agregarParticipante(UUID conversacionId, UUID usuarioId);
     int contarParticipantes(UUID conversacionId);
     boolean esAdministrador(UUID conversacionId, UUID usuarioId);

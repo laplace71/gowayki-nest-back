@@ -17,6 +17,10 @@ import java.util.UUID;
 public class CrearConversacionRequestDto {
     private String titulo;
     private Boolean esGrupo;
+    /** PRIVADA, GRUPO o GRUPO_RUTA. Opcional: si falta se deduce del título. */
+    private String tipoConversacion;
+    /** Subruta concreta para un GRUPO_RUTA. */
+    private String claveRuta;
     private UUID createdBy;
     private List<UUID> participanteIds;
 }

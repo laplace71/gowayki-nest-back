@@ -31,6 +31,8 @@ public interface SpringDataConversacionRepository extends JpaRepository<Conversa
 
     java.util.Optional<Conversacion> findFirstByTitulo(String titulo);
 
+    java.util.Optional<Conversacion> findFirstByClaveRuta(String claveRuta);
+
     /**
      * Bloquea la fila de la conversación hasta el final de la transacción.
      * Se usa antes de tocar la membresía para que dos peticiones simultáneas no

@@ -25,6 +25,15 @@ public class Conversacion {
     @Builder.Default
     private Boolean esGrupo = false;
 
+    /** PRIVADA, GRUPO o GRUPO_RUTA. Sustituye a deducirlo del título. */
+    @Column(name = "tipo_conversacion", nullable = false, length = 20)
+    @Builder.Default
+    private String tipoConversacion = "PRIVADA";
+
+    /** Subruta a la que pertenece un GRUPO_RUTA; null en el resto. */
+    @Column(name = "clave_ruta", length = 150)
+    private String claveRuta;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by")
     private Usuario createdBy;

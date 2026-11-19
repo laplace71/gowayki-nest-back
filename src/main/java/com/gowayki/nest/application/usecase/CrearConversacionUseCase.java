@@ -48,14 +48,33 @@ public class CrearConversacionUseCase {
             throw new IllegalArgumentException("El usuario creador no existe.");
         }
 
-        boolean esGrupoRuta = Boolean.TRUE.equals(request.getEsGrupo())
-                && request.getTitulo() != null
-                && !request.getTitulo().isBlank()
-                && request.getTitulo().trim().startsWith("GRUPO · ");
+        String titulo = request.getTitulo() != null ? request.getTitulo().trim() : null;
+        boolean esGrupo = Boolean.TRUE.equals(request.getEsGrupo());
+
+        // El tipo se toma de los campos estructurados. Solo si no vienen (app
+        // antigua) se acepta el prefijo del título como compatibilidad.
+        String claveRuta = request.getClaveRuta() != null ? request.getClaveRuta().trim() : null;
+        boolean esGrupoRuta = esGrupo && (
+                "GRUPO_RUTA".equals(request.getTipoConversacion())
+                        || (claveRuta != null && !claveRuta.isBlank())
+                        || (titulo != null && titulo.startsWith("GRUPO · ")));
+
+        if (esGrupoRuta && (claveRuta == null || claveRuta.isBlank())) {
+            claveRuta = claveDesdeTitulo(titulo);
+        }
+        if (esGrupoRuta && (claveRuta == null || claveRuta.isBlank())) {
+            throw new IllegalArgumentException(
+                    "Para un grupo de ruta hace falta la subruta (claveRuta).");
+        }
+
+        String tipoConversacion = esGrupoRuta ? "GRUPO_RUTA" : (esGrupo ? "GRUPO" : "PRIVADA");
 
         if (esGrupoRuta) {
             java.util.Optional<ConversacionModel> existenteOpt =
-                    conversacionRepositoryPort.findByTitulo(request.getTitulo().trim());
+                    conversacionRepositoryPort.findByClaveRuta(claveRuta)
+                            .or(() -> titulo == null
+                                    ? java.util.Optional.empty()
+                                    : conversacionRepositoryPort.findByTitulo(titulo));
             if (existenteOpt.isPresent()) {
                 ConversacionModel existente = existenteOpt.get();
                 if (eliminacionGrupoPort.buscarPendiente(existente.getId()).isPresent()) {
@@ -74,6 +93,8 @@ public class CrearConversacionUseCase {
                         .id(existente.getId())
                         .titulo(existente.getTitulo())
                         .esGrupo(existente.getEsGrupo())
+                        .tipoConversacion(existente.getTipoConversacion())
+                        .claveRuta(existente.getClaveRuta())
                         .createdBy(existente.getCreatedBy())
                         .createdAt(existente.getCreatedAt())
                         .totalMensajes(0)
@@ -86,8 +107,10 @@ public class CrearConversacionUseCase {
         List<UUID> participantes = new ArrayList<>(usuariosEntrando(request));
 
         ConversacionModel model = ConversacionModel.builder()
-                .titulo(request.getTitulo() != null ? request.getTitulo().trim() : null)
-                .esGrupo(Boolean.TRUE.equals(request.getEsGrupo()))
+                .titulo(titulo)
+                .esGrupo(esGrupo)
+                .tipoConversacion(tipoConversacion)
+                .claveRuta(esGrupoRuta ? claveRuta : null)
                 .createdBy(request.getCreatedBy())
                 .createdAt(OffsetDateTime.now())
                 .build();
@@ -106,12 +129,35 @@ public class CrearConversacionUseCase {
                 .id(guardado.getId())
                 .titulo(guardado.getTitulo())
                 .esGrupo(guardado.getEsGrupo())
+                .tipoConversacion(guardado.getTipoConversacion())
+                .claveRuta(guardado.getClaveRuta())
                 .createdBy(guardado.getCreatedBy())
                 .createdAt(guardado.getCreatedAt())
                 .totalMensajes(0)
                 .ultimoMensaje(null)
                 .totalParticipantes(count)
                 .build();
+    }
+
+    /** "GRUPO · Subruta X" -> "Subruta X". Solo para peticiones antiguas. */
+    private static String claveDesdeTitulo(String titulo) {
+        if (titulo == null) return null;
+        String prefijo = "GRUPO · ";
+        return titulo.startsWith(prefijo) ? titulo.substring(prefijo.length()).trim() : null;
+    }
+
+    /**
+     * ¿Es un grupo de subruta? Se mira el tipo estructurado y, solo para filas
+     * antiguas sin migrar, el título como respaldo.
+     */
+    private static boolean esGrupoDeRuta(ConversacionModel conversacion) {
+        if (conversacion.getTipoConversacion() != null) {
+            return "GRUPO_RUTA".equals(conversacion.getTipoConversacion());
+        }
+        String titulo = conversacion.getTitulo();
+        return Boolean.TRUE.equals(conversacion.getEsGrupo())
+                && titulo != null
+                && titulo.startsWith("GRUPO · ");
     }
 
     private Set<UUID> usuariosEntrando(CrearConversacionRequestDto request) {
@@ -134,8 +180,7 @@ public class CrearConversacionUseCase {
         if (usuarioId == null) return;
         for (ConversacionModel c : conversacionRepositoryPort.findByUsuarioIdSinFiltroOcultas(usuarioId)) {
             if (c.getId() == null || c.getId().equals(grupoActualId)) continue;
-            String titulo = c.getTitulo();
-            if (!Boolean.TRUE.equals(c.getEsGrupo()) || titulo == null || !titulo.startsWith("GRUPO · ")) continue;
+            if (!esGrupoDeRuta(c)) continue;
 
             try {
                 conversacionRepositoryPort.quitarParticipante(c.getId(), usuarioId);

@@ -17,6 +17,8 @@ public class ConversacionMapper {
                 .id(entity.getId())
                 .titulo(entity.getTitulo())
                 .esGrupo(entity.getEsGrupo())
+                .tipoConversacion(entity.getTipoConversacion())
+                .claveRuta(entity.getClaveRuta())
                 .createdBy(entity.getCreatedBy() != null ? entity.getCreatedBy().getId() : null)
                 .createdAt(entity.getCreatedAt())
                 .build();
@@ -31,6 +33,8 @@ public class ConversacionMapper {
                 .id(model.getId())
                 .titulo(model.getTitulo())
                 .esGrupo(model.getEsGrupo())
+                .tipoConversacion(model.getTipoConversacion() == null ? "PRIVADA" : model.getTipoConversacion())
+                .claveRuta(model.getClaveRuta())
                 .createdBy(createdBy)
                 .createdAt(model.getCreatedAt())
                 .build();

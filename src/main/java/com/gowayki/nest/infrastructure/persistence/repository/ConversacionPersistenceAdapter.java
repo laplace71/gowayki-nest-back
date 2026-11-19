@@ -98,6 +98,11 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
     }
 
     @Override
+    public Optional<ConversacionModel> findByClaveRuta(String claveRuta) {
+        return conversacionRepository.findFirstByClaveRuta(claveRuta).map(conversacionMapper::toDomain);
+    }
+
+    @Override
     @Transactional
     public void agregarParticipante(UUID conversacionId, UUID usuarioId) {
         // Bloquea la conversación: sin esto, dos peticiones simultáneas pueden

@@ -57,6 +57,8 @@ public class ListarConversacionesUsuarioUseCase {
                     .id(c.getId())
                     .titulo(c.getTitulo())
                     .esGrupo(c.getEsGrupo())
+                    .tipoConversacion(c.getTipoConversacion())
+                    .claveRuta(c.getClaveRuta())
                     .createdBy(c.getCreatedBy())
                     .createdAt(c.getCreatedAt())
                     .totalMensajes(total)
