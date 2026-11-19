@@ -1,5 +1,7 @@
 package com.gowayki.nest.application.usecase;
 
+import com.gowayki.nest.domain.exception.AccesoDenegadoException;
+import com.gowayki.nest.domain.exception.NoAutenticadoException;
 import com.gowayki.nest.domain.model.ConversacionModel;
 import com.gowayki.nest.domain.model.MensajeModel;
 import com.gowayki.nest.domain.repository.AudioStoragePort;
@@ -40,14 +42,14 @@ public class SalirConversacionUseCase {
     @Transactional
     public boolean ejecutar(UUID conversacionId, UUID usuarioId) {
         if (usuarioId == null) {
-            throw new IllegalArgumentException("Se requiere el usuario que sale del grupo.");
+            throw new NoAutenticadoException("Se requiere un usuario autenticado.");
         }
 
         ConversacionModel conversacion = conversacionRepositoryPort.findById(conversacionId)
                 .orElseThrow(() -> new IllegalArgumentException("La conversación no existe."));
 
         if (!conversacionRepositoryPort.existeParticipante(conversacionId, usuarioId)) {
-            throw new IllegalArgumentException("No formas parte de esta conversación.");
+            throw new AccesoDenegadoException("No formas parte de esta conversación.");
         }
 
         conversacionRepositoryPort.quitarParticipante(conversacionId, usuarioId);

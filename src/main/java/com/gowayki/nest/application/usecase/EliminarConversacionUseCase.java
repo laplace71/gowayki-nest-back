@@ -1,5 +1,7 @@
 package com.gowayki.nest.application.usecase;
 
+import com.gowayki.nest.domain.exception.AccesoDenegadoException;
+import com.gowayki.nest.domain.exception.NoAutenticadoException;
 import com.gowayki.nest.domain.model.ConversacionModel;
 import com.gowayki.nest.domain.model.MensajeModel;
 import com.gowayki.nest.domain.repository.AudioStoragePort;
@@ -34,6 +36,10 @@ public class EliminarConversacionUseCase {
 
     @Transactional
     public void ejecutar(UUID conversacionId, UUID solicitanteId) {
+        if (solicitanteId == null) {
+            throw new NoAutenticadoException("Se requiere un usuario autenticado.");
+        }
+
         ConversacionModel conversacion = conversacionRepositoryPort.findById(conversacionId)
                 .orElseThrow(() -> new IllegalArgumentException("La conversación no existe."));
 
@@ -51,11 +57,6 @@ public class EliminarConversacionUseCase {
     }
 
     private void verificarPermiso(ConversacionModel conversacion, UUID solicitanteId) {
-        // Sin solicitante (llamadas internas o limpieza) se permite.
-        if (solicitanteId == null) {
-            return;
-        }
-
         boolean esCreador = conversacion.getCreatedBy() != null
                 && conversacion.getCreatedBy().equals(solicitanteId);
 
@@ -64,11 +65,11 @@ public class EliminarConversacionUseCase {
         }
 
         if (!conversacionRepositoryPort.existeParticipante(conversacion.getId(), solicitanteId)) {
-            throw new IllegalArgumentException("No formas parte de esta conversación.");
+            throw new AccesoDenegadoException("No formas parte de esta conversación.");
         }
 
         if (!conversacionRepositoryPort.esAdministrador(conversacion.getId(), solicitanteId)) {
-            throw new IllegalArgumentException("Solo el creador o un administrador del grupo puede eliminarlo.");
+            throw new AccesoDenegadoException("Solo el creador o un administrador del grupo puede eliminarlo.");
         }
     }
 }

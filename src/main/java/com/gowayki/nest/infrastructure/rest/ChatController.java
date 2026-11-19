@@ -2,10 +2,12 @@ package com.gowayki.nest.infrastructure.rest;
 
 import com.gowayki.nest.application.dto.*;
 import com.gowayki.nest.application.usecase.*;
+import com.gowayki.nest.domain.exception.NoAutenticadoException;
 import com.gowayki.nest.infrastructure.websocket.ChatWebSocketHandler;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,6 +16,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Chat autenticado: el usuario siempre sale del JWT (`Authentication`), nunca
+ * de un parámetro de la petición.
+ */
 @RestController
 @RequestMapping("/api/chat")
 @CrossOrigin(origins = "*")
@@ -53,154 +59,122 @@ public class ChatController {
     }
 
     @PostMapping("/conversaciones")
-    public ResponseEntity<?> crearConversacion(@RequestBody CrearConversacionRequestDto request) {
-        try {
-            ConversacionResponseDto response = crearConversacionUseCase.ejecutar(request);
-            chatWebSocketHandler.emitirMensaje(response);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("exito", false, "mensaje", "Error al crear conversación: " + e.getMessage()));
+    public ResponseEntity<ConversacionResponseDto> crearConversacion(@RequestBody CrearConversacionRequestDto request,
+                                                                     Authentication autenticacion) {
+        // El creador es siempre quien llama: el campo del cliente se ignora.
+        request.setCreatedBy(usuario(autenticacion));
+        ConversacionResponseDto response = crearConversacionUseCase.ejecutar(request);
+        chatWebSocketHandler.emitirMensaje(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/conversaciones")
+    public ResponseEntity<List<ConversacionResponseDto>> listarConversaciones(Authentication autenticacion) {
+        return ResponseEntity.ok(listarConversacionesUsuarioUseCase.ejecutar(usuario(autenticacion)));
+    }
+
+    @GetMapping("/conversaciones/{conversacionId}/participantes")
+    public ResponseEntity<List<ParticipanteResponseDto>> listarParticipantes(@PathVariable UUID conversacionId,
+                                                                            Authentication autenticacion) {
+        return ResponseEntity.ok(
+                listarParticipantesConversacionUseCase.ejecutar(conversacionId, usuario(autenticacion)));
+    }
+
+    @GetMapping("/conversaciones/{conversacionId}/mensajes")
+    public ResponseEntity<List<MensajeResponseDto>> obtenerMensajes(@PathVariable UUID conversacionId,
+                                                                   Authentication autenticacion) {
+        return ResponseEntity.ok(obtenerMensajesUseCase.ejecutar(conversacionId, usuario(autenticacion)));
+    }
+
+    @PostMapping("/conversaciones/{conversacionId}/mensajes/texto")
+    public ResponseEntity<MensajeResponseDto> enviarMensajeTexto(@PathVariable UUID conversacionId,
+                                                                @RequestBody EnviarMensajeTextoRequestDto request,
+                                                                Authentication autenticacion) {
+        // El emisor es siempre quien llama: el `emisorId` del cuerpo se ignora.
+        request.setEmisorId(usuario(autenticacion));
+        MensajeResponseDto response = enviarMensajeTextoUseCase.ejecutar(conversacionId, request);
+        chatWebSocketHandler.emitirMensaje(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping(value = "/conversaciones/{conversacionId}/mensajes/audio",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> enviarMensajeAudio(@PathVariable UUID conversacionId,
+                                                @RequestParam("audio") MultipartFile file,
+                                                @RequestParam(value = "duracionSegundos", required = false)
+                                                Integer duracionSegundos,
+                                                Authentication autenticacion) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("exito", false, "mensaje", "El archivo de audio es requerido."));
         }
+
+        String nombreOriginal = file.getOriginalFilename();
+        String extension = ".m4a";
+        if (nombreOriginal != null && nombreOriginal.contains(".")) {
+            extension = nombreOriginal.substring(nombreOriginal.lastIndexOf("."));
+        }
+
+        byte[] bytes;
+        try {
+            bytes = file.getBytes();
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("exito", false, "mensaje", "Error de lectura de archivo: " + e.getMessage()));
+        }
+
+        MensajeResponseDto response = enviarMensajeAudioUseCase.ejecutar(
+                conversacionId, usuario(autenticacion), bytes, extension, duracionSegundos
+        );
+        chatWebSocketHandler.emitirMensaje(response);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /** Saca al usuario de la conversación. No la borra para los demás. */
     @PostMapping("/conversaciones/{conversacionId}/salir")
-    public ResponseEntity<?> salirConversacion(@PathVariable UUID conversacionId,
-                                               @RequestParam(required = false) UUID usuarioId) {
-        try {
-            boolean eliminada = salirConversacionUseCase.ejecutar(conversacionId, usuarioId);
-            // Solo si el grupo quedó vacío y se eliminó entero tiene sentido avisar
-            // a todos. Si no, el grupo sigue existiendo para los demás miembros y
-            // quien salió ya lo quita de su lista con la respuesta de esta llamada.
-            if (eliminada) {
-                chatWebSocketHandler.emitirEvento(Map.of(
-                        "tipo", "CONVERSACION_ELIMINADA",
-                        "conversacionId", conversacionId
-                ));
-            }
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("exito", false, "mensaje", "Error al salir de la conversación: " + e.getMessage()));
-        }
-    }
-
-    /** Cambia el rol de un participante (ADMIN o MIEMBRO). Solo un admin/creador puede hacerlo. */
-    @PutMapping("/conversaciones/{conversacionId}/participantes/{miembroId}/rol")
-    public ResponseEntity<?> asignarRol(@PathVariable UUID conversacionId,
-                                        @PathVariable UUID miembroId,
-                                        @RequestParam(required = false) UUID usuarioId,
-                                        @RequestParam String rol) {
-        try {
-            asignarRolParticipanteUseCase.ejecutar(conversacionId, usuarioId, miembroId, rol);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("exito", false, "mensaje", "Error al cambiar el rol: " + e.getMessage()));
-        }
-    }
-
-    @DeleteMapping("/conversaciones/{conversacionId}")
-    public ResponseEntity<?> eliminarConversacion(@PathVariable UUID conversacionId,
-                                                  @RequestParam(required = false) UUID usuarioId) {
-        try {
-            eliminarConversacionUseCase.ejecutar(conversacionId, usuarioId);
-            // Avisa a los demás dispositivos para que la quiten de su lista.
+    public ResponseEntity<Void> salirConversacion(@PathVariable UUID conversacionId,
+                                                  Authentication autenticacion) {
+        boolean eliminada = salirConversacionUseCase.ejecutar(conversacionId, usuario(autenticacion));
+        // Solo si el grupo quedó vacío y se eliminó entero tiene sentido avisar
+        // a todos. Si no, el grupo sigue existiendo para los demás miembros y
+        // quien salió ya lo quita de su lista con la respuesta de esta llamada.
+        if (eliminada) {
             chatWebSocketHandler.emitirEvento(Map.of(
                     "tipo", "CONVERSACION_ELIMINADA",
                     "conversacionId", conversacionId
             ));
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("exito", false, "mensaje", "Error al eliminar la conversación: " + e.getMessage()));
         }
+        return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/usuarios/{usuarioId}/conversaciones")
-    public ResponseEntity<List<ConversacionResponseDto>> listarConversaciones(@PathVariable UUID usuarioId) {
-        return ResponseEntity.ok(listarConversacionesUsuarioUseCase.ejecutar(usuarioId));
+    /** Cambia el rol de un participante (ADMIN o MIEMBRO). Solo un admin/creador puede hacerlo. */
+    @PutMapping("/conversaciones/{conversacionId}/participantes/{miembroId}/rol")
+    public ResponseEntity<Void> asignarRol(@PathVariable UUID conversacionId,
+                                           @PathVariable UUID miembroId,
+                                           @RequestParam String rol,
+                                           Authentication autenticacion) {
+        asignarRolParticipanteUseCase.ejecutar(conversacionId, usuario(autenticacion), miembroId, rol);
+        return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/conversaciones/{conversacionId}/participantes")
-    public ResponseEntity<?> listarParticipantes(@PathVariable UUID conversacionId,
-                                                 @RequestParam(required = false) UUID usuarioId) {
-        try {
-            return ResponseEntity.ok(listarParticipantesConversacionUseCase.ejecutar(conversacionId, usuarioId));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("exito", false, "mensaje", "Error al listar participantes: " + e.getMessage()));
-        }
+    @DeleteMapping("/conversaciones/{conversacionId}")
+    public ResponseEntity<Void> eliminarConversacion(@PathVariable UUID conversacionId,
+                                                     Authentication autenticacion) {
+        eliminarConversacionUseCase.ejecutar(conversacionId, usuario(autenticacion));
+        // Avisa a los demás dispositivos para que la quiten de su lista.
+        chatWebSocketHandler.emitirEvento(Map.of(
+                "tipo", "CONVERSACION_ELIMINADA",
+                "conversacionId", conversacionId
+        ));
+        return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/conversaciones/{conversacionId}/mensajes")
-    public ResponseEntity<?> obtenerMensajes(@PathVariable UUID conversacionId) {
-        try {
-            List<MensajeResponseDto> mensajes = obtenerMensajesUseCase.ejecutar(conversacionId);
-            return ResponseEntity.ok(mensajes);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));
+    /** Identidad autenticada. Si no hay token válido, Spring Security ya respondió 401. */
+    private static UUID usuario(Authentication autenticacion) {
+        if (autenticacion == null || autenticacion.getPrincipal() == null) {
+            throw new NoAutenticadoException("Se requiere un usuario autenticado.");
         }
-    }
-
-    @PostMapping("/conversaciones/{conversacionId}/mensajes/texto")
-    public ResponseEntity<?> enviarMensajeTexto(@PathVariable UUID conversacionId,
-                                                @RequestBody EnviarMensajeTextoRequestDto request) {
-        try {
-            MensajeResponseDto response = enviarMensajeTextoUseCase.ejecutar(conversacionId, request);
-            chatWebSocketHandler.emitirMensaje(response);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("exito", false, "mensaje", "Error al enviar mensaje: " + e.getMessage()));
-        }
-    }
-
-    @PostMapping(value = "/conversaciones/{conversacionId}/mensajes/audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> enviarMensajeAudio(@PathVariable UUID conversacionId,
-                                                @RequestParam("audio") MultipartFile file,
-                                                @RequestParam("emisorId") UUID emisorId,
-                                                @RequestParam(value = "duracionSegundos", required = false) Integer duracionSegundos) {
-        try {
-            if (file == null || file.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", "El archivo de audio es requerido."));
-            }
-
-            String nombreOriginal = file.getOriginalFilename();
-            String extension = ".m4a";
-            if (nombreOriginal != null && nombreOriginal.contains(".")) {
-                extension = nombreOriginal.substring(nombreOriginal.lastIndexOf("."));
-            }
-
-            byte[] bytes = file.getBytes();
-            MensajeResponseDto response = enviarMensajeAudioUseCase.ejecutar(
-                    conversacionId, emisorId, bytes, extension, duracionSegundos
-            );
-            chatWebSocketHandler.emitirMensaje(response);
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("exito", false, "mensaje", "Error de lectura de archivo: " + e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("exito", false, "mensaje", "Error interno al enviar audio: " + e.getMessage()));
-        }
+        return UUID.fromString(autenticacion.getPrincipal().toString());
     }
 }
-
