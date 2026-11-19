@@ -5,7 +5,6 @@ import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-import org.springframework.web.util.UriComponentsBuilder;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
@@ -42,7 +41,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         usuarioDeLaSesion(session).ifPresent(usuarioId ->
                 usuariosPorSesion.put(session.getId(), usuarioId));
     }
-
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
         sessions.remove(session);
@@ -111,13 +109,14 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    /**
+     * Usuario autenticado en el handshake (lo pone `JwtHandshakeInterceptor`).
+     * Nunca se toma de la URL: cualquiera podría escribir un id ajeno.
+     */
     private Optional<UUID> usuarioDeLaSesion(WebSocketSession session) {
         try {
-            String valor = UriComponentsBuilder.fromUri(session.getUri())
-                    .build()
-                    .getQueryParams()
-                    .getFirst("usuarioId");
-            return valor == null || valor.isBlank() ? Optional.empty() : Optional.of(UUID.fromString(valor));
+            Object valor = session.getAttributes().get(JwtHandshakeInterceptor.ATRIBUTO_USUARIO);
+            return valor instanceof UUID usuarioId ? Optional.of(usuarioId) : Optional.empty();
         } catch (Exception e) {
             return Optional.empty();
         }
