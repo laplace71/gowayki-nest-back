@@ -7,7 +7,9 @@ public interface AudioStoragePort {
     /**
      * Borra un audio del disco. Acepta tanto la URL guardada en la base
      * ("/uploads/audios/x.m4a") como el nombre del archivo ("x.m4a").
-     * Si el archivo ya no existe, no falla.
+     *
+     * @return true si el archivo ya no está (borrado o inexistente), false si
+     *         no se pudo borrar y conviene reintentarlo.
      */
-    void eliminarAudio(String archivoOUrl);
+    boolean eliminarAudio(String archivoOUrl);
 }

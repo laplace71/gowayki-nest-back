@@ -3,7 +3,7 @@ package com.gowayki.nest.application.usecase;
 import com.gowayki.nest.domain.model.ConversacionModel;
 import com.gowayki.nest.domain.model.EliminacionGrupoModel;
 import com.gowayki.nest.domain.model.MensajeModel;
-import com.gowayki.nest.domain.repository.AudioStoragePort;
+import com.gowayki.nest.domain.repository.ArchivoPendienteBorradoPort;
 import com.gowayki.nest.domain.repository.ConversacionRepositoryPort;
 import com.gowayki.nest.domain.repository.EliminacionGrupoPort;
 import com.gowayki.nest.domain.repository.MensajeRepositoryPort;
@@ -33,16 +33,16 @@ public class EjecutarEliminacionGrupoUseCase {
     private final ConversacionRepositoryPort conversacionRepositoryPort;
     private final MensajeRepositoryPort mensajeRepositoryPort;
     private final EliminacionGrupoPort eliminacionGrupoPort;
-    private final AudioStoragePort audioStoragePort;
+    private final ArchivoPendienteBorradoPort archivoPendienteBorradoPort;
 
     public EjecutarEliminacionGrupoUseCase(ConversacionRepositoryPort conversacionRepositoryPort,
                                            MensajeRepositoryPort mensajeRepositoryPort,
                                            EliminacionGrupoPort eliminacionGrupoPort,
-                                           AudioStoragePort audioStoragePort) {
+                                           ArchivoPendienteBorradoPort archivoPendienteBorradoPort) {
         this.conversacionRepositoryPort = conversacionRepositoryPort;
         this.mensajeRepositoryPort = mensajeRepositoryPort;
         this.eliminacionGrupoPort = eliminacionGrupoPort;
-        this.audioStoragePort = audioStoragePort;
+        this.archivoPendienteBorradoPort = archivoPendienteBorradoPort;
     }
 
     @Transactional
@@ -94,7 +94,8 @@ public class EjecutarEliminacionGrupoUseCase {
         eliminacionGrupoPort.marcarEjecutada(solicitud.getId(), ahora);
         conversacionRepositoryPort.eliminar(conversacionId);
 
-        audios.forEach(audioStoragePort::eliminarAudio);
+        // Los archivos se borran después del commit, nunca dentro de la transacción.
+        audios.forEach(ruta -> archivoPendienteBorradoPort.encolar(ruta, "GRUPO_ELIMINADO"));
 
         return Optional.of(new Resultado(conversacionId, participantes));
     }

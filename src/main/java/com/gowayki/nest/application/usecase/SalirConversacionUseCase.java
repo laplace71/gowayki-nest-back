@@ -4,7 +4,7 @@ import com.gowayki.nest.domain.exception.AccesoDenegadoException;
 import com.gowayki.nest.domain.exception.NoAutenticadoException;
 import com.gowayki.nest.domain.model.ConversacionModel;
 import com.gowayki.nest.domain.model.MensajeModel;
-import com.gowayki.nest.domain.repository.AudioStoragePort;
+import com.gowayki.nest.domain.repository.ArchivoPendienteBorradoPort;
 import com.gowayki.nest.domain.repository.ConversacionRepositoryPort;
 import com.gowayki.nest.domain.repository.MensajeRepositoryPort;
 import org.springframework.stereotype.Service;
@@ -18,22 +18,22 @@ import java.util.UUID;
  * "Salir del grupo": saca al usuario de la conversación. El grupo y sus
  * mensajes siguen existiendo para los demás.
  *
- * Si el grupo se queda sin nadie, se borra entero (con sus mensajes y audios):
- * no tiene sentido conservar un grupo al que no pertenece nadie.
+ * Si el grupo se queda sin nadie, se borra entero. Los audios no se tocan aquí:
+ * se encolan para borrarlos cuando el commit ya esté firme.
  */
 @Service
 public class SalirConversacionUseCase {
 
     private final ConversacionRepositoryPort conversacionRepositoryPort;
     private final MensajeRepositoryPort mensajeRepositoryPort;
-    private final AudioStoragePort audioStoragePort;
+    private final ArchivoPendienteBorradoPort archivoPendienteBorradoPort;
 
     public SalirConversacionUseCase(ConversacionRepositoryPort conversacionRepositoryPort,
                                     MensajeRepositoryPort mensajeRepositoryPort,
-                                    AudioStoragePort audioStoragePort) {
+                                    ArchivoPendienteBorradoPort archivoPendienteBorradoPort) {
         this.conversacionRepositoryPort = conversacionRepositoryPort;
         this.mensajeRepositoryPort = mensajeRepositoryPort;
-        this.audioStoragePort = audioStoragePort;
+        this.archivoPendienteBorradoPort = archivoPendienteBorradoPort;
     }
 
     /**
@@ -58,13 +58,14 @@ public class SalirConversacionUseCase {
 
         if (Boolean.TRUE.equals(conversacion.getEsGrupo())
                 && conversacionRepositoryPort.contarParticipantes(conversacionId) == 0) {
-            // Se quedó sin nadie: morir con dignidad, llevándose mensajes y audios.
+            // Se quedó sin nadie: se elimina, pero los archivos se borran después
+            // del commit (ver LimpiarArchivosPendientesUseCase).
             List<String> audios = mensajeRepositoryPort.findByConversacionId(conversacionId).stream()
                     .map(MensajeModel::getAudioUrl)
                     .filter(Objects::nonNull)
                     .toList();
             conversacionRepositoryPort.eliminar(conversacionId);
-            audios.forEach(audioStoragePort::eliminarAudio);
+            audios.forEach(ruta -> archivoPendienteBorradoPort.encolar(ruta, "GRUPO_VACIO"));
             return true;
         }
         return false;

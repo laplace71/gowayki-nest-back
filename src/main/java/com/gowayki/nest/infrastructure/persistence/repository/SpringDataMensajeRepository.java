@@ -18,5 +18,7 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
     Optional<Mensaje> findTopByConversacionIdOrderByCreatedAtDesc(@Param("conversacionId") UUID conversacionId);
 
     int countByConversacionId(UUID conversacionId);
+
+    boolean existsByAudioUrl(String audioUrl);
 }
 

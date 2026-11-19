@@ -5,7 +5,7 @@ import com.gowayki.nest.application.dto.CrearConversacionRequestDto;
 import com.gowayki.nest.domain.exception.ConflictoException;
 import com.gowayki.nest.domain.model.ConversacionModel;
 import com.gowayki.nest.domain.model.MensajeModel;
-import com.gowayki.nest.domain.repository.AudioStoragePort;
+import com.gowayki.nest.domain.repository.ArchivoPendienteBorradoPort;
 import com.gowayki.nest.domain.repository.ConversacionRepositoryPort;
 import com.gowayki.nest.domain.repository.EliminacionGrupoPort;
 import com.gowayki.nest.domain.repository.MensajeRepositoryPort;
@@ -27,18 +27,18 @@ public class CrearConversacionUseCase {
     private final ConversacionRepositoryPort conversacionRepositoryPort;
     private final UsuarioRepositoryPort usuarioRepositoryPort;
     private final MensajeRepositoryPort mensajeRepositoryPort;
-    private final AudioStoragePort audioStoragePort;
+    private final ArchivoPendienteBorradoPort archivoPendienteBorradoPort;
     private final EliminacionGrupoPort eliminacionGrupoPort;
 
     public CrearConversacionUseCase(ConversacionRepositoryPort conversacionRepositoryPort,
                                    UsuarioRepositoryPort usuarioRepositoryPort,
                                    MensajeRepositoryPort mensajeRepositoryPort,
-                                   AudioStoragePort audioStoragePort,
+                                   ArchivoPendienteBorradoPort archivoPendienteBorradoPort,
                                    EliminacionGrupoPort eliminacionGrupoPort) {
         this.conversacionRepositoryPort = conversacionRepositoryPort;
         this.usuarioRepositoryPort = usuarioRepositoryPort;
         this.mensajeRepositoryPort = mensajeRepositoryPort;
-        this.audioStoragePort = audioStoragePort;
+        this.archivoPendienteBorradoPort = archivoPendienteBorradoPort;
         this.eliminacionGrupoPort = eliminacionGrupoPort;
     }
 
@@ -149,7 +149,8 @@ public class CrearConversacionUseCase {
                         .filter(Objects::nonNull)
                         .toList();
                 conversacionRepositoryPort.eliminar(c.getId());
-                audios.forEach(audioStoragePort::eliminarAudio);
+                // Los archivos se borran después del commit, no aquí.
+                audios.forEach(ruta -> archivoPendienteBorradoPort.encolar(ruta, "GRUPO_RUTA_VACIO"));
             }
         }
     }

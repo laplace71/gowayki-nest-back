@@ -11,5 +11,11 @@ public interface MensajeRepositoryPort {
     List<MensajeModel> findByConversacionId(UUID conversacionId);
     Optional<MensajeModel> findUltimoMensaje(UUID conversacionId);
     int contarMensajes(UUID conversacionId);
+
+    /**
+     * ¿Algún mensaje sigue apuntando a este archivo? Sirve para no borrar un
+     * audio que otra conversación (u otro mensaje) todavía usa.
+     */
+    boolean existeAudioUrl(String audioUrl);
 }
 
