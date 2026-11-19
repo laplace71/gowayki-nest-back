@@ -67,11 +67,17 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     /** Envía un evento únicamente a las sesiones de ese usuario. */
     public void emitirEventoAUsuario(UUID usuarioId, Object evento) {
         if (usuarioId == null) return;
+        emitirEventoAUsuarios(List.of(usuarioId), evento);
+    }
+
+    /** Envía un evento a las sesiones de todos esos usuarios. */
+    public void emitirEventoAUsuarios(java.util.Collection<UUID> usuarios, Object evento) {
+        if (usuarios == null || usuarios.isEmpty()) return;
         String json = serializar(evento);
         if (json == null) return;
 
         for (Map.Entry<String, UUID> entrada : usuariosPorSesion.entrySet()) {
-            if (!usuarioId.equals(entrada.getValue())) continue;
+            if (!usuarios.contains(entrada.getValue())) continue;
             sessions.stream()
                     .filter(sesion -> sesion.getId().equals(entrada.getKey()))
                     .findFirst()

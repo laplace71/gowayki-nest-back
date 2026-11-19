@@ -2,10 +2,12 @@ package com.gowayki.nest.application.usecase;
 
 import com.gowayki.nest.application.dto.ConversacionResponseDto;
 import com.gowayki.nest.application.dto.CrearConversacionRequestDto;
+import com.gowayki.nest.domain.exception.ConflictoException;
 import com.gowayki.nest.domain.model.ConversacionModel;
 import com.gowayki.nest.domain.model.MensajeModel;
 import com.gowayki.nest.domain.repository.AudioStoragePort;
 import com.gowayki.nest.domain.repository.ConversacionRepositoryPort;
+import com.gowayki.nest.domain.repository.EliminacionGrupoPort;
 import com.gowayki.nest.domain.repository.MensajeRepositoryPort;
 import com.gowayki.nest.domain.repository.UsuarioRepositoryPort;
 import org.springframework.stereotype.Service;
@@ -26,15 +28,18 @@ public class CrearConversacionUseCase {
     private final UsuarioRepositoryPort usuarioRepositoryPort;
     private final MensajeRepositoryPort mensajeRepositoryPort;
     private final AudioStoragePort audioStoragePort;
+    private final EliminacionGrupoPort eliminacionGrupoPort;
 
     public CrearConversacionUseCase(ConversacionRepositoryPort conversacionRepositoryPort,
                                    UsuarioRepositoryPort usuarioRepositoryPort,
                                    MensajeRepositoryPort mensajeRepositoryPort,
-                                   AudioStoragePort audioStoragePort) {
+                                   AudioStoragePort audioStoragePort,
+                                   EliminacionGrupoPort eliminacionGrupoPort) {
         this.conversacionRepositoryPort = conversacionRepositoryPort;
         this.usuarioRepositoryPort = usuarioRepositoryPort;
         this.mensajeRepositoryPort = mensajeRepositoryPort;
         this.audioStoragePort = audioStoragePort;
+        this.eliminacionGrupoPort = eliminacionGrupoPort;
     }
 
     @Transactional
@@ -53,6 +58,10 @@ public class CrearConversacionUseCase {
                     conversacionRepositoryPort.findByTitulo(request.getTitulo().trim());
             if (existenteOpt.isPresent()) {
                 ConversacionModel existente = existenteOpt.get();
+                if (eliminacionGrupoPort.buscarPendiente(existente.getId()).isPresent()) {
+                    throw new ConflictoException(
+                            "Este grupo está pendiente de eliminación definitiva; ya no admite nuevos participantes.");
+                }
                 Set<UUID> entrando = usuariosEntrando(request);
                 for (UUID pId : entrando) {
                     conversacionRepositoryPort.agregarParticipante(existente.getId(), pId);
@@ -123,7 +132,7 @@ public class CrearConversacionUseCase {
      */
     private void salirDeOtrosGruposRuta(UUID usuarioId, UUID grupoActualId) {
         if (usuarioId == null) return;
-        for (ConversacionModel c : conversacionRepositoryPort.findByUsuarioId(usuarioId)) {
+        for (ConversacionModel c : conversacionRepositoryPort.findByUsuarioIdSinFiltroOcultas(usuarioId)) {
             if (c.getId() == null || c.getId().equals(grupoActualId)) continue;
             String titulo = c.getTitulo();
             if (!Boolean.TRUE.equals(c.getEsGrupo()) || titulo == null || !titulo.startsWith("GRUPO · ")) continue;

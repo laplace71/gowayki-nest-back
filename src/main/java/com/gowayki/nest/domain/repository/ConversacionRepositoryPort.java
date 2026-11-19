@@ -10,6 +10,9 @@ public interface ConversacionRepositoryPort {
     ConversacionModel save(ConversacionModel model, List<UUID> participanteIds);
     Optional<ConversacionModel> findById(UUID id);
     List<ConversacionModel> findByUsuarioId(UUID usuarioId);
+
+    /** Igual que `findByUsuarioId` pero incluyendo las que el usuario ocultó. */
+    List<ConversacionModel> findByUsuarioIdSinFiltroOcultas(UUID usuarioId);
     boolean existeParticipante(UUID conversacionId, UUID usuarioId);
     Optional<ConversacionModel> findByTitulo(String titulo);
     void agregarParticipante(UUID conversacionId, UUID usuarioId);

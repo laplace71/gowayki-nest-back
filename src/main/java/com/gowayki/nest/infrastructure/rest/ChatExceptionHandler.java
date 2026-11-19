@@ -1,6 +1,7 @@
 package com.gowayki.nest.infrastructure.rest;
 
 import com.gowayki.nest.domain.exception.AccesoDenegadoException;
+import com.gowayki.nest.domain.exception.ConflictoException;
 import com.gowayki.nest.domain.exception.NoAutenticadoException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,12 @@ public class ChatExceptionHandler {
     @ExceptionHandler(AccesoDenegadoException.class)
     public ResponseEntity<Map<String, Object>> accesoDenegado(AccesoDenegadoException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("exito", false, "mensaje", e.getMessage()));
+    }
+
+    @ExceptionHandler(ConflictoException.class)
+    public ResponseEntity<Map<String, Object>> conflicto(ConflictoException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("exito", false, "mensaje", e.getMessage()));
     }
 

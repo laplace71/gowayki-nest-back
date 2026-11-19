@@ -3,6 +3,8 @@ package com.gowayki.nest.infrastructure.rest;
 import com.gowayki.nest.application.dto.*;
 import com.gowayki.nest.application.usecase.*;
 import com.gowayki.nest.domain.exception.NoAutenticadoException;
+import com.gowayki.nest.domain.model.EliminacionGrupoModel;
+import com.gowayki.nest.domain.repository.ChatNotificacionPort;
 import com.gowayki.nest.infrastructure.websocket.ChatWebSocketHandler;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -14,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -35,6 +38,9 @@ public class ChatController {
     private final SalirConversacionUseCase salirConversacionUseCase;
     private final AsignarRolParticipanteUseCase asignarRolParticipanteUseCase;
     private final ListarParticipantesConversacionUseCase listarParticipantesConversacionUseCase;
+    private final SolicitarEliminacionGrupoUseCase solicitarEliminacionGrupoUseCase;
+    private final CancelarEliminacionGrupoUseCase cancelarEliminacionGrupoUseCase;
+    private final ChatNotificacionPort chatNotificacionPort;
     private final ChatWebSocketHandler chatWebSocketHandler;
 
     public ChatController(CrearConversacionUseCase crearConversacionUseCase,
@@ -47,6 +53,9 @@ public class ChatController {
                           SalirConversacionUseCase salirConversacionUseCase,
                           AsignarRolParticipanteUseCase asignarRolParticipanteUseCase,
                           ListarParticipantesConversacionUseCase listarParticipantesConversacionUseCase,
+                          SolicitarEliminacionGrupoUseCase solicitarEliminacionGrupoUseCase,
+                          CancelarEliminacionGrupoUseCase cancelarEliminacionGrupoUseCase,
+                          ChatNotificacionPort chatNotificacionPort,
                           ChatWebSocketHandler chatWebSocketHandler) {
         this.crearConversacionUseCase = crearConversacionUseCase;
         this.enviarMensajeTextoUseCase = enviarMensajeTextoUseCase;
@@ -58,6 +67,9 @@ public class ChatController {
         this.salirConversacionUseCase = salirConversacionUseCase;
         this.asignarRolParticipanteUseCase = asignarRolParticipanteUseCase;
         this.listarParticipantesConversacionUseCase = listarParticipantesConversacionUseCase;
+        this.solicitarEliminacionGrupoUseCase = solicitarEliminacionGrupoUseCase;
+        this.cancelarEliminacionGrupoUseCase = cancelarEliminacionGrupoUseCase;
+        this.chatNotificacionPort = chatNotificacionPort;
         this.chatWebSocketHandler = chatWebSocketHandler;
     }
 
@@ -191,6 +203,54 @@ public class ChatController {
                 "tipo", "CONVERSACION_MOSTRADA",
                 "conversacionId", conversacionId
         ));
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Eliminación DEFINITIVA de un grupo: no borra al momento. Registra la
+     * solicitud con su fecha y el grupo desaparece cuando pasan 72 horas.
+     * Solo el creador o un administrador pueden pedirla.
+     */
+    @PostMapping("/conversaciones/{conversacionId}/eliminacion")
+    public ResponseEntity<EliminacionGrupoResponseDto> solicitarEliminacion(
+            @PathVariable UUID conversacionId,
+            Authentication autenticacion) {
+
+        UUID usuarioId = usuario(autenticacion);
+        EliminacionGrupoModel solicitud = solicitarEliminacionGrupoUseCase.ejecutar(conversacionId, usuarioId);
+
+        List<UUID> participantes = listarParticipantesConversacionUseCase
+                .ejecutar(conversacionId, usuarioId).stream()
+                .map(ParticipanteResponseDto::getUserId)
+                .filter(Objects::nonNull)
+                .toList();
+        chatNotificacionPort.eliminacionPendiente(
+                conversacionId, solicitud.getTituloSnapshot(), solicitud.getEjecutarDespues(), participantes);
+
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(EliminacionGrupoResponseDto.builder()
+                .conversacionId(conversacionId)
+                .solicitudId(solicitud.getId())
+                .estado(solicitud.getEstado())
+                .solicitadoEn(solicitud.getSolicitadoEn())
+                .seEliminaraEn(solicitud.getEjecutarDespues())
+                .horasDeEspera(SolicitarEliminacionGrupoUseCase.HORAS_DE_ESPERA)
+                .build());
+    }
+
+    /** Cancela la eliminación definitiva antes de que se cumplan las 72 horas. */
+    @DeleteMapping("/conversaciones/{conversacionId}/eliminacion")
+    public ResponseEntity<Void> cancelarEliminacion(@PathVariable UUID conversacionId,
+                                                    Authentication autenticacion) {
+        UUID usuarioId = usuario(autenticacion);
+        cancelarEliminacionGrupoUseCase.ejecutar(conversacionId, usuarioId);
+
+        List<UUID> participantes = listarParticipantesConversacionUseCase
+                .ejecutar(conversacionId, usuarioId).stream()
+                .map(ParticipanteResponseDto::getUserId)
+                .filter(Objects::nonNull)
+                .toList();
+        chatNotificacionPort.eliminacionCancelada(conversacionId, participantes);
+
         return ResponseEntity.noContent().build();
     }
 

@@ -17,6 +17,16 @@ public interface SpringDataConversacionRepository extends JpaRepository<Conversa
             "ORDER BY c.createdAt DESC")
     List<Conversacion> findByUsuarioId(@Param("usuarioId") UUID usuarioId);
 
+    /**
+     * Igual que el anterior pero sin descontar las ocultas: sirve para las
+     * operaciones que deben ver toda la membresía real (por ejemplo, al cambiar
+     * de subruta hay que salir de los otros grupos aunque estén ocultos).
+     */
+    @Query("SELECT c FROM Conversacion c JOIN ConversacionParticipante cp ON cp.conversacion.id = c.id " +
+            "WHERE cp.chofer.id = :usuarioId " +
+            "ORDER BY c.createdAt DESC")
+    List<Conversacion> findByUsuarioIdSinFiltroOcultas(@Param("usuarioId") UUID usuarioId);
+
     java.util.Optional<Conversacion> findFirstByTitulo(String titulo);
 }
 
