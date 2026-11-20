@@ -37,6 +37,7 @@ public class ChatController {
     private final MostrarConversacionUseCase mostrarConversacionUseCase;
     private final SalirConversacionUseCase salirConversacionUseCase;
     private final AsignarRolParticipanteUseCase asignarRolParticipanteUseCase;
+    private final AgregarParticipantesUseCase agregarParticipantesUseCase;
     private final ListarParticipantesConversacionUseCase listarParticipantesConversacionUseCase;
     private final SolicitarEliminacionGrupoUseCase solicitarEliminacionGrupoUseCase;
     private final CancelarEliminacionGrupoUseCase cancelarEliminacionGrupoUseCase;
@@ -55,6 +56,7 @@ public class ChatController {
                           MostrarConversacionUseCase mostrarConversacionUseCase,
                           SalirConversacionUseCase salirConversacionUseCase,
                           AsignarRolParticipanteUseCase asignarRolParticipanteUseCase,
+                          AgregarParticipantesUseCase agregarParticipantesUseCase,
                           ListarParticipantesConversacionUseCase listarParticipantesConversacionUseCase,
                           SolicitarEliminacionGrupoUseCase solicitarEliminacionGrupoUseCase,
                           CancelarEliminacionGrupoUseCase cancelarEliminacionGrupoUseCase,
@@ -72,6 +74,7 @@ public class ChatController {
         this.mostrarConversacionUseCase = mostrarConversacionUseCase;
         this.salirConversacionUseCase = salirConversacionUseCase;
         this.asignarRolParticipanteUseCase = asignarRolParticipanteUseCase;
+        this.agregarParticipantesUseCase = agregarParticipantesUseCase;
         this.listarParticipantesConversacionUseCase = listarParticipantesConversacionUseCase;
         this.solicitarEliminacionGrupoUseCase = solicitarEliminacionGrupoUseCase;
         this.cancelarEliminacionGrupoUseCase = cancelarEliminacionGrupoUseCase;
@@ -209,6 +212,19 @@ public class ChatController {
                                            @RequestParam String rol,
                                            Authentication autenticacion) {
         asignarRolParticipanteUseCase.ejecutar(conversacionId, usuario(autenticacion), miembroId, rol);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Invita conductores a un grupo ya existente (por id, sin depender de que
+     * el backend reutilice el grupo por título o clave de ruta).
+     */
+    @PostMapping("/conversaciones/{conversacionId}/participantes")
+    public ResponseEntity<Void> agregarParticipantes(@PathVariable UUID conversacionId,
+                                                     @RequestBody AgregarParticipantesRequestDto request,
+                                                     Authentication autenticacion) {
+        agregarParticipantesUseCase.ejecutar(
+                conversacionId, usuario(autenticacion), request == null ? null : request.getUsuarioIds());
         return ResponseEntity.noContent().build();
     }
 
