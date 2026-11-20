@@ -28,6 +28,10 @@ public class AsignacionTurno {
     @JoinColumn(name = "unidad_id", nullable = false)
     private Unidad unidad;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subruta_id")
+    private Subruta subruta;
+
     @Column(nullable = false)
     @Builder.Default
     private LocalDate fecha = LocalDate.now();

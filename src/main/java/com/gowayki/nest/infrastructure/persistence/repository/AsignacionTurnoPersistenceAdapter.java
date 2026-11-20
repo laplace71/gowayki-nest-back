@@ -3,6 +3,7 @@ package com.gowayki.nest.infrastructure.persistence.repository;
 import com.gowayki.nest.domain.model.AsignacionTurnoModel;
 import com.gowayki.nest.domain.repository.AsignacionTurnoRepositoryPort;
 import com.gowayki.nest.infrastructure.persistence.entity.AsignacionTurno;
+import com.gowayki.nest.infrastructure.persistence.entity.Subruta;
 import com.gowayki.nest.infrastructure.persistence.entity.Unidad;
 import com.gowayki.nest.infrastructure.persistence.entity.Usuario;
 import com.gowayki.nest.infrastructure.persistence.mapper.AsignacionTurnoMapper;
@@ -19,15 +20,18 @@ public class AsignacionTurnoPersistenceAdapter implements AsignacionTurnoReposit
     private final SpringDataAsignacionTurnoRepository turnoRepository;
     private final SpringDataUsuarioRepository usuarioRepository;
     private final SpringDataUnidadRepository unidadRepository;
+    private final SpringDataSubrutaRepository subrutaRepository;
     private final AsignacionTurnoMapper turnoMapper;
 
     public AsignacionTurnoPersistenceAdapter(SpringDataAsignacionTurnoRepository turnoRepository,
                                             SpringDataUsuarioRepository usuarioRepository,
                                             SpringDataUnidadRepository unidadRepository,
+                                            SpringDataSubrutaRepository subrutaRepository,
                                             AsignacionTurnoMapper turnoMapper) {
         this.turnoRepository = turnoRepository;
         this.usuarioRepository = usuarioRepository;
         this.unidadRepository = unidadRepository;
+        this.subrutaRepository = subrutaRepository;
         this.turnoMapper = turnoMapper;
     }
 
@@ -40,8 +44,21 @@ public class AsignacionTurnoPersistenceAdapter implements AsignacionTurnoReposit
         Unidad unidad = unidadRepository.findById(model.getUnidadId())
                 .orElseThrow(() -> new IllegalArgumentException("Unidad no encontrada."));
 
-        AsignacionTurno entity = turnoMapper.toEntity(model, chofer, unidad);
+        Subruta subruta = null;
+        if (model.getSubrutaId() != null) {
+            subruta = subrutaRepository.findById(model.getSubrutaId())
+                    .orElseThrow(() -> new IllegalArgumentException("Subruta no encontrada."));
+        } else if (model.getSubrutaCodigo() != null && !model.getSubrutaCodigo().isBlank()) {
+            subruta = subrutaRepository.findByCodigo(model.getSubrutaCodigo()).orElse(null);
+        }
+
+        AsignacionTurno entity = turnoMapper.toEntity(model, chofer, unidad, subruta);
         AsignacionTurno guardado = turnoRepository.save(entity);
+        // Vincular también la unidad a la subruta concreta operada
+        if (subruta != null && (unidad.getSubruta() == null || !unidad.getSubruta().getId().equals(subruta.getId()))) {
+            unidad.setSubruta(subruta);
+            unidadRepository.save(unidad);
+        }
         return turnoMapper.toDomain(guardado);
     }
 

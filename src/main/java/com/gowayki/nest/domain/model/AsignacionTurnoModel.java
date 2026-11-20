@@ -26,6 +26,9 @@ public class AsignacionTurnoModel {
     private Integer lineaId;
     private String lineaNombre;
     private String lineaColorHex;
+    private Integer subrutaId;
+    private String subrutaCodigo;
+    private String subrutaNombre;
     private LocalDate fecha;
     private OffsetDateTime horaInicio;
     private OffsetDateTime horaFin;
