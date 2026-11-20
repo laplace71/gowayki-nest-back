@@ -21,6 +21,7 @@ public class FakeMensajeRepository implements MensajeRepositoryPort {
     public final Map<java.util.UUID, OffsetDateTime> marcadosEliminados = new LinkedHashMap<>();
     /** (mensaje, usuario) ocultos para ese usuario: los demás siguen viéndolos. */
     public final Set<String> ocultosPorUsuario = new LinkedHashSet<>();
+    public final Set<String> leidosPorUsuario = new LinkedHashSet<>();
     public final List<String> llamadas = new ArrayList<>();
 
     public void agregarAudio(UUID conversacionId, UUID emisorId, String audioUrl) {
@@ -87,16 +88,26 @@ public class FakeMensajeRepository implements MensajeRepositoryPort {
     public int contarNoLeidos(UUID conversacionId, UUID usuarioId) {
         return (int) findVisiblesParaUsuario(conversacionId, usuarioId).stream()
                 .filter(m -> !usuarioId.equals(m.getEmisorId()))
-                .filter(m -> !"LEIDO".equals(m.getEstado()))
+                .filter(m -> !leidosPorUsuario.contains(claveLeido(m.getId(), usuarioId)))
                 .count();
     }
 
     @Override
     public void marcarLeidos(UUID conversacionId, UUID usuarioId) {
         llamadas.add("marcarLeidos");
+        marcarLeidosParaUsuario(conversacionId, usuarioId);
+    }
+
+    private static String claveLeido(UUID mensajeId, UUID usuarioId) {
+        return mensajeId + "|" + usuarioId;
+    }
+
+    @Override
+    public void marcarLeidosParaUsuario(UUID conversacionId, UUID usuarioId) {
+        llamadas.add("marcarLeidosParaUsuario");
         findByConversacionId(conversacionId).stream()
                 .filter(m -> !usuarioId.equals(m.getEmisorId()))
-                .forEach(m -> m.setEstado("LEIDO"));
+                .forEach(m -> leidosPorUsuario.add(claveLeido(m.getId(), usuarioId)));
     }
 
     @Override

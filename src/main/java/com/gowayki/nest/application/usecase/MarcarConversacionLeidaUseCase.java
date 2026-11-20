@@ -35,6 +35,6 @@ public class MarcarConversacionLeidaUseCase {
         if (!conversacionRepositoryPort.existeParticipante(conversacionId, usuarioId)) {
             throw new AccesoDenegadoException("No formas parte de esta conversación.");
         }
-        mensajeRepositoryPort.marcarLeidos(conversacionId, usuarioId);
+        mensajeRepositoryPort.marcarLeidosParaUsuario(conversacionId, usuarioId);
     }
 }

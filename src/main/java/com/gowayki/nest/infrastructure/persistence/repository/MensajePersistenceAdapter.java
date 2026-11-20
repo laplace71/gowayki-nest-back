@@ -4,6 +4,8 @@ import com.gowayki.nest.domain.model.MensajeModel;
 import com.gowayki.nest.domain.repository.MensajeRepositoryPort;
 import com.gowayki.nest.infrastructure.persistence.entity.Conversacion;
 import com.gowayki.nest.infrastructure.persistence.entity.Mensaje;
+import com.gowayki.nest.infrastructure.persistence.entity.MensajeLeido;
+import com.gowayki.nest.infrastructure.persistence.entity.MensajeLeidoId;
 import com.gowayki.nest.infrastructure.persistence.entity.MensajeOculto;
 import com.gowayki.nest.infrastructure.persistence.entity.MensajeOcultoId;
 import com.gowayki.nest.infrastructure.persistence.entity.Usuario;
@@ -21,17 +23,20 @@ public class MensajePersistenceAdapter implements MensajeRepositoryPort {
 
     private final SpringDataMensajeRepository mensajeRepository;
     private final SpringDataMensajeOcultoRepository mensajeOcultoRepository;
+    private final SpringDataMensajeLeidoRepository mensajeLeidoRepository;
     private final SpringDataConversacionRepository conversacionRepository;
     private final SpringDataUsuarioRepository usuarioRepository;
     private final MensajeMapper mensajeMapper;
 
     public MensajePersistenceAdapter(SpringDataMensajeRepository mensajeRepository,
                                      SpringDataMensajeOcultoRepository mensajeOcultoRepository,
+                                      SpringDataMensajeLeidoRepository mensajeLeidoRepository,
                                     SpringDataConversacionRepository conversacionRepository,
                                     SpringDataUsuarioRepository usuarioRepository,
                                     MensajeMapper mensajeMapper) {
         this.mensajeRepository = mensajeRepository;
         this.mensajeOcultoRepository = mensajeOcultoRepository;
+        this.mensajeLeidoRepository = mensajeLeidoRepository;
         this.conversacionRepository = conversacionRepository;
         this.usuarioRepository = usuarioRepository;
         this.mensajeMapper = mensajeMapper;
@@ -92,6 +97,22 @@ public class MensajePersistenceAdapter implements MensajeRepositoryPort {
     @Transactional
     public void marcarLeidos(UUID conversacionId, UUID usuarioId) {
         mensajeRepository.marcarLeidos(conversacionId, usuarioId);
+    }
+
+    @Override
+    @Transactional
+    public void marcarLeidosParaUsuario(UUID conversacionId, UUID usuarioId) {
+        OffsetDateTime ahora = OffsetDateTime.now();
+        List<Mensaje> ajenos = mensajeRepository.findByConversacionIdOrderByCreatedAtAsc(conversacionId)
+                .stream()
+                .filter(m -> m.getEmisor() == null || !usuarioId.equals(m.getEmisor().getId()))
+                .toList();
+        for (Mensaje mensaje : ajenos) {
+            MensajeLeidoId id = new MensajeLeidoId(mensaje.getId(), usuarioId);
+            if (!mensajeLeidoRepository.existsById(id)) {
+                mensajeLeidoRepository.save(MensajeLeido.builder().id(id).leidoEn(ahora).build());
+            }
+        }
     }
 
     @Override

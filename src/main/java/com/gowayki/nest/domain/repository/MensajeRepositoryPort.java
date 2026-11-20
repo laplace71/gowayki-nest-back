@@ -31,6 +31,9 @@ public interface MensajeRepositoryPort {
     /** Marca como leídos los mensajes ajenos al abrir la conversación. */
     void marcarLeidos(UUID conversacionId, UUID usuarioId);
 
+    /** Lectura personal: los mensajes ajenos pasan a leídos SOLO para este usuario. */
+    void marcarLeidosParaUsuario(UUID conversacionId, UUID usuarioId);
+
     Optional<MensajeModel> findById(UUID mensajeId);
 
     /** "Eliminar para mí": marca personal, los demás participantes no la notan. */

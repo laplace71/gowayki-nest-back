@@ -33,6 +33,7 @@ public class ChatController {
     private final EnviarMensajeAudioUseCase enviarMensajeAudioUseCase;
     private final ObtenerMensajesUseCase obtenerMensajesUseCase;
     private final MarcarConversacionLeidaUseCase marcarConversacionLeidaUseCase;
+    private final ObtenerTotalNoLeidosUseCase obtenerTotalNoLeidosUseCase;
     private final ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase;
     private final OcultarConversacionUseCase ocultarConversacionUseCase;
     private final MostrarConversacionUseCase mostrarConversacionUseCase;
@@ -53,6 +54,7 @@ public class ChatController {
                           EnviarMensajeAudioUseCase enviarMensajeAudioUseCase,
                           ObtenerMensajesUseCase obtenerMensajesUseCase,
                           MarcarConversacionLeidaUseCase marcarConversacionLeidaUseCase,
+                          ObtenerTotalNoLeidosUseCase obtenerTotalNoLeidosUseCase,
                           ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase,
                           OcultarConversacionUseCase ocultarConversacionUseCase,
                           MostrarConversacionUseCase mostrarConversacionUseCase,
@@ -72,6 +74,7 @@ public class ChatController {
         this.enviarMensajeAudioUseCase = enviarMensajeAudioUseCase;
         this.obtenerMensajesUseCase = obtenerMensajesUseCase;
         this.marcarConversacionLeidaUseCase = marcarConversacionLeidaUseCase;
+        this.obtenerTotalNoLeidosUseCase = obtenerTotalNoLeidosUseCase;
         this.listarConversacionesUsuarioUseCase = listarConversacionesUsuarioUseCase;
         this.ocultarConversacionUseCase = ocultarConversacionUseCase;
         this.mostrarConversacionUseCase = mostrarConversacionUseCase;
@@ -96,6 +99,12 @@ public class ChatController {
         ConversacionResponseDto response = crearConversacionUseCase.ejecutar(request);
         chatWebSocketHandler.emitirMensaje(response);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /** Total ligero para el badge del bottom nav, sin cargar conversaciones. */
+    @GetMapping("/no-leidos")
+    public ResponseEntity<Map<String, Integer>> totalNoLeidos(Authentication autenticacion) {
+        return ResponseEntity.ok(Map.of("total", obtenerTotalNoLeidosUseCase.ejecutar(usuario(autenticacion))));
     }
 
     @GetMapping("/conversaciones")
