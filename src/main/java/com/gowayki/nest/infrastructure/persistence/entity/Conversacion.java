@@ -41,4 +41,8 @@ public class Conversacion {
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private OffsetDateTime createdAt = OffsetDateTime.now();
+
+    /** Soft delete: null mientras el grupo está vivo; fecha de marcado si se eliminó. */
+    @Column(name = "eliminado_en")
+    private OffsetDateTime eliminadoEn;
 }

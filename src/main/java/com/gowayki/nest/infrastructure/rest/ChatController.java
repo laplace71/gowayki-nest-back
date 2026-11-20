@@ -40,6 +40,9 @@ public class ChatController {
     private final ListarParticipantesConversacionUseCase listarParticipantesConversacionUseCase;
     private final SolicitarEliminacionGrupoUseCase solicitarEliminacionGrupoUseCase;
     private final CancelarEliminacionGrupoUseCase cancelarEliminacionGrupoUseCase;
+    private final LimpiarConversacionUseCase limpiarConversacionUseCase;
+    private final OcultarMensajeUseCase ocultarMensajeUseCase;
+    private final EliminarMensajeParaTodosUseCase eliminarMensajeParaTodosUseCase;
     private final ChatNotificacionPort chatNotificacionPort;
     private final ChatWebSocketHandler chatWebSocketHandler;
 
@@ -55,6 +58,9 @@ public class ChatController {
                           ListarParticipantesConversacionUseCase listarParticipantesConversacionUseCase,
                           SolicitarEliminacionGrupoUseCase solicitarEliminacionGrupoUseCase,
                           CancelarEliminacionGrupoUseCase cancelarEliminacionGrupoUseCase,
+                          LimpiarConversacionUseCase limpiarConversacionUseCase,
+                          OcultarMensajeUseCase ocultarMensajeUseCase,
+                          EliminarMensajeParaTodosUseCase eliminarMensajeParaTodosUseCase,
                           ChatNotificacionPort chatNotificacionPort,
                           ChatWebSocketHandler chatWebSocketHandler) {
         this.crearConversacionUseCase = crearConversacionUseCase;
@@ -69,6 +75,9 @@ public class ChatController {
         this.listarParticipantesConversacionUseCase = listarParticipantesConversacionUseCase;
         this.solicitarEliminacionGrupoUseCase = solicitarEliminacionGrupoUseCase;
         this.cancelarEliminacionGrupoUseCase = cancelarEliminacionGrupoUseCase;
+        this.limpiarConversacionUseCase = limpiarConversacionUseCase;
+        this.ocultarMensajeUseCase = ocultarMensajeUseCase;
+        this.eliminarMensajeParaTodosUseCase = eliminarMensajeParaTodosUseCase;
         this.chatNotificacionPort = chatNotificacionPort;
         this.chatWebSocketHandler = chatWebSocketHandler;
     }
@@ -99,6 +108,36 @@ public class ChatController {
     public ResponseEntity<List<MensajeResponseDto>> obtenerMensajes(@PathVariable UUID conversacionId,
                                                                    Authentication autenticacion) {
         return ResponseEntity.ok(obtenerMensajesUseCase.ejecutar(conversacionId, usuario(autenticacion)));
+    }
+
+    /**
+     * "Eliminar para mí": el mensaje desaparece solo para quien lo pide. Se
+     * guarda en BD, sobrevive a reinstalar y los demás participantes no notan
+     * nada. 204 sin cuerpo: no hay plazos ni detalles que mostrar al usuario.
+     */
+    @DeleteMapping("/conversaciones/{conversacionId}/mensajes/{mensajeId}")
+    public ResponseEntity<Void> ocultarMensaje(@PathVariable UUID conversacionId,
+                                               @PathVariable UUID mensajeId,
+                                               Authentication autenticacion) {
+        UUID usuarioId = usuario(autenticacion);
+        ocultarMensajeUseCase.ejecutar(conversacionId, mensajeId, usuarioId);
+        chatNotificacionPort.mensajeOculto(conversacionId, mensajeId, usuarioId);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * "Eliminar para todos": solo el emisor puede hacerlo. El mensaje
+     * desaparece ya para todos; la purga física ocurre en silencio a las 72 h.
+     * Tampoco aquí se devuelve plazo ni mensaje al usuario.
+     */
+    @DeleteMapping("/conversaciones/{conversacionId}/mensajes/{mensajeId}/todos")
+    public ResponseEntity<Void> eliminarMensajeParaTodos(@PathVariable UUID conversacionId,
+                                                        @PathVariable UUID mensajeId,
+                                                        Authentication autenticacion) {
+        UUID usuarioId = usuario(autenticacion);
+        List<UUID> participantes = eliminarMensajeParaTodosUseCase.ejecutar(conversacionId, mensajeId, usuarioId);
+        chatNotificacionPort.mensajeEliminado(conversacionId, mensajeId, participantes);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/conversaciones/{conversacionId}/mensajes/texto")
@@ -207,9 +246,25 @@ public class ChatController {
     }
 
     /**
-     * Eliminación DEFINITIVA de un grupo: no borra al momento. Registra la
-     * solicitud con su fecha y el grupo desaparece cuando pasan 72 horas.
-     * Solo el creador o un administrador pueden pedirla.
+     * Limpia un chat SOLO para este usuario. Guarda la marca en BD (sobrevive a
+     * reinstalar la app) y avisa a sus otros dispositivos. No borra mensajes y
+     * los demás participantes no notan nada.
+     */
+    @PostMapping("/conversaciones/{conversacionId}/limpiar")
+    public ResponseEntity<Void> limpiarConversacion(@PathVariable UUID conversacionId,
+                                                    Authentication autenticacion) {
+        UUID usuarioId = usuario(autenticacion);
+        limpiarConversacionUseCase.ejecutar(conversacionId, usuarioId);
+
+        chatNotificacionPort.conversacionLimpiada(
+                conversacionId, usuarioId, java.time.OffsetDateTime.now());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Eliminación DEFINITIVA de un grupo: desaparece YA de todas las apps y
+     * queda marcado (soft delete) en la BD. A las 72 horas un job lo purga
+     * físicamente junto con sus mensajes y archivos. Solo creador o admin.
      */
     @PostMapping("/conversaciones/{conversacionId}/eliminacion")
     public ResponseEntity<EliminacionGrupoResponseDto> solicitarEliminacion(
@@ -224,8 +279,9 @@ public class ChatController {
                 .map(ParticipanteResponseDto::getUserId)
                 .filter(Objects::nonNull)
                 .toList();
-        chatNotificacionPort.eliminacionPendiente(
-                conversacionId, solicitud.getTituloSnapshot(), solicitud.getEjecutarDespues(), participantes);
+        // El grupo desaparece YA de todas las interfaces (soft delete en BD).
+        // El aviso de "pendiente" ya no se envía: para la app el grupo no existe.
+        chatNotificacionPort.grupoEliminado(conversacionId, participantes);
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(EliminacionGrupoResponseDto.builder()
                 .conversacionId(conversacionId)

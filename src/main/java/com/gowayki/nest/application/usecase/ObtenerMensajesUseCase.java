@@ -34,7 +34,7 @@ public class ObtenerMensajesUseCase {
             throw new AccesoDenegadoException("No formas parte de esta conversación.");
         }
 
-        List<MensajeModel> mensajes = mensajeRepositoryPort.findByConversacionId(conversacionId);
+        List<MensajeModel> mensajes = mensajeRepositoryPort.findVisiblesParaUsuario(conversacionId, solicitanteId);
 
         return mensajes.stream()
                 .map(m -> MensajeResponseDto.builder()

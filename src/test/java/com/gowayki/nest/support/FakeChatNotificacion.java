@@ -13,6 +13,9 @@ public class FakeChatNotificacion implements ChatNotificacionPort {
     public final List<UUID> conversacionesConPendiente = new ArrayList<>();
     public final List<UUID> conversacionesCanceladas = new ArrayList<>();
     public final List<UUID> conversacionesEliminadas = new ArrayList<>();
+    public final List<UUID> conversacionesLimpiadas = new ArrayList<>();
+    public final List<UUID> mensajesOcultos = new ArrayList<>();
+    public final List<UUID> mensajesEliminados = new ArrayList<>();
     public final List<List<UUID>> destinatarios = new ArrayList<>();
 
     @Override
@@ -31,6 +34,23 @@ public class FakeChatNotificacion implements ChatNotificacionPort {
     @Override
     public void grupoEliminado(UUID conversacionId, List<UUID> participantes) {
         conversacionesEliminadas.add(conversacionId);
+        destinatarios.add(List.copyOf(participantes));
+    }
+
+    @Override
+    public void conversacionLimpiada(UUID conversacionId, UUID usuarioId, OffsetDateTime limpiadoEn) {
+        conversacionesLimpiadas.add(conversacionId);
+    }
+
+    @Override
+    public void mensajeOculto(UUID conversacionId, UUID mensajeId, UUID usuarioId) {
+        mensajesOcultos.add(mensajeId);
+        destinatarios.add(List.of(usuarioId));
+    }
+
+    @Override
+    public void mensajeEliminado(UUID conversacionId, UUID mensajeId, List<UUID> participantes) {
+        mensajesEliminados.add(mensajeId);
         destinatarios.add(List.copyOf(participantes));
     }
 }

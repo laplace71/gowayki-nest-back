@@ -27,4 +27,8 @@ public class ConversacionUsuarioEstado {
 
     @Column(name = "oculta_en")
     private OffsetDateTime ocultaEn;
+
+    /** Marca de "limpiar chat": solo este usuario oculta lo anterior. */
+    @Column(name = "limpiado_en")
+    private OffsetDateTime limpiadoEn;
 }

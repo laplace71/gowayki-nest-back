@@ -55,8 +55,8 @@ class EliminacionGrupoUseCaseTest {
         archivos = new FakeArchivoPendienteRepository();
         notificaciones = new FakeChatNotificacion();
 
-        solicitar = new SolicitarEliminacionGrupoUseCase(conversaciones, eliminaciones);
-        cancelar = new CancelarEliminacionGrupoUseCase(conversaciones, eliminaciones);
+        solicitar = new SolicitarEliminacionGrupoUseCase(conversaciones, eliminaciones, mensajes);
+        cancelar = new CancelarEliminacionGrupoUseCase(conversaciones, eliminaciones, mensajes);
         ejecutar = new EjecutarEliminacionGrupoUseCase(conversaciones, mensajes, eliminaciones, archivos);
         procesar = new ProcesarEliminacionesGrupoUseCase(eliminaciones, ejecutar, notificaciones);
 
@@ -85,7 +85,20 @@ class EliminacionGrupoUseCaseTest {
         assertEquals(grupoId, solicitud.getConversacionId());
         assertTrue(solicitud.getEjecutarDespues().isAfter(antes.plusHours(71)),
                 "El plazo debe ser de 72 horas");
-        assertFalse(conversaciones.borradas.contains(grupoId), "Pedir no borra nada");
+        assertFalse(conversaciones.borradas.contains(grupoId), "Pedir no borra nada todavía");
+        assertTrue(conversaciones.marcadasEliminadas.containsKey(grupoId),
+                "El grupo queda marcado (soft delete) y desaparece de las apps");
+    }
+
+    @Test
+    void alPedirLaEliminacionLosMensajesQuedanMarcadosPeroSiguenEnLaBD() {
+        mensajes.agregarAudio(grupoId, creador, "/uploads/audios/uno.m4a");
+
+        solicitar.ejecutar(grupoId, creador);
+
+        assertEquals(1, mensajes.marcadosEliminados.size());
+        assertEquals(1, mensajes.findByConversacionId(grupoId).size(), "La purga todavía los ve");
+        assertTrue(mensajes.findVisiblesByConversacionId(grupoId).isEmpty(), "La app ya no los ve");
     }
 
     @Test
@@ -127,6 +140,8 @@ class EliminacionGrupoUseCaseTest {
         assertTrue(eliminaciones.solicitudes.values().stream()
                 .anyMatch(s -> "CANCELADA".equals(s.getEstado())));
         assertTrue(conversaciones.borradas.isEmpty());
+        assertFalse(conversaciones.marcadasEliminadas.containsKey(grupoId),
+                "Al cancelar se deshace el soft delete y el grupo vuelve a verse");
     }
 
     @Test

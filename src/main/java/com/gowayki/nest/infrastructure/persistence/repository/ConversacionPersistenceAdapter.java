@@ -191,6 +191,18 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
 
     @Override
     @Transactional
+    public void marcarEliminado(UUID conversacionId, java.time.OffsetDateTime momento) {
+        conversacionRepository.marcarEliminado(conversacionId, momento);
+    }
+
+    @Override
+    @Transactional
+    public void desmarcarEliminado(UUID conversacionId) {
+        conversacionRepository.desmarcarEliminado(conversacionId);
+    }
+
+    @Override
+    @Transactional
     public void ocultarParaUsuario(UUID conversacionId, UUID usuarioId) {
         ConversacionUsuarioEstadoId id = new ConversacionUsuarioEstadoId(conversacionId, usuarioId);
         ConversacionUsuarioEstado estado = estadoRepository.findById(id)
@@ -209,6 +221,16 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
                     estado.setOcultaEn(null);
                     estadoRepository.save(estado);
                 });
+    }
+
+    @Override
+    @Transactional
+    public void limpiarParaUsuario(UUID conversacionId, UUID usuarioId, java.time.OffsetDateTime momento) {
+        ConversacionUsuarioEstadoId id = new ConversacionUsuarioEstadoId(conversacionId, usuarioId);
+        ConversacionUsuarioEstado estado = estadoRepository.findById(id)
+                .orElseGet(() -> ConversacionUsuarioEstado.builder().id(id).build());
+        estado.setLimpiadoEn(momento);
+        estadoRepository.save(estado);
     }
 
     @Override

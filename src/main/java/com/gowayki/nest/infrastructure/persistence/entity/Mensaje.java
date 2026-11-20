@@ -46,4 +46,8 @@ public class Mensaje {
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private OffsetDateTime createdAt = OffsetDateTime.now();
+
+    /** Soft delete: se marca junto al grupo y se purga físicamente a las 72 h. */
+    @Column(name = "eliminado_en")
+    private OffsetDateTime eliminadoEn;
 }

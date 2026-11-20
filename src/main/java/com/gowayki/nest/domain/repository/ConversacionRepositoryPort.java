@@ -2,6 +2,7 @@ package com.gowayki.nest.domain.repository;
 
 import com.gowayki.nest.domain.model.ConversacionModel;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,11 +41,23 @@ public interface ConversacionRepositoryPort {
      */
     void eliminar(UUID conversacionId);
 
+    /** Soft delete: marca el grupo como eliminado sin borrar nada todavía. */
+    void marcarEliminado(UUID conversacionId, OffsetDateTime momento);
+
+    /** Quita la marca si se cancela la eliminación dentro de las 72 horas. */
+    void desmarcarEliminado(UUID conversacionId);
+
     /** Oculta la conversación solo para ese usuario. No borra nada. */
     void ocultarParaUsuario(UUID conversacionId, UUID usuarioId);
 
     /** Vuelve a mostrar una conversación que el usuario había ocultado. */
     void mostrarParaUsuario(UUID conversacionId, UUID usuarioId);
+
+    /**
+     * Guarda la marca de "limpiar chat" de este usuario. No toca mensajes ni
+     * avisa a nadie: es solo visual y personal.
+     */
+    void limpiarParaUsuario(UUID conversacionId, UUID usuarioId, OffsetDateTime momento);
 
     /** Borra el estado personal (al salir del grupo, para que al volver se vea). */
     void limpiarEstadoUsuario(UUID conversacionId, UUID usuarioId);

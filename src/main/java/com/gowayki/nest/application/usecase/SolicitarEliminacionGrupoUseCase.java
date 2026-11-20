@@ -6,6 +6,7 @@ import com.gowayki.nest.domain.model.ConversacionModel;
 import com.gowayki.nest.domain.model.EliminacionGrupoModel;
 import com.gowayki.nest.domain.repository.ConversacionRepositoryPort;
 import com.gowayki.nest.domain.repository.EliminacionGrupoPort;
+import com.gowayki.nest.domain.repository.MensajeRepositoryPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,11 +27,14 @@ public class SolicitarEliminacionGrupoUseCase {
 
     private final ConversacionRepositoryPort conversacionRepositoryPort;
     private final EliminacionGrupoPort eliminacionGrupoPort;
+    private final MensajeRepositoryPort mensajeRepositoryPort;
 
     public SolicitarEliminacionGrupoUseCase(ConversacionRepositoryPort conversacionRepositoryPort,
-                                            EliminacionGrupoPort eliminacionGrupoPort) {
+                                            EliminacionGrupoPort eliminacionGrupoPort,
+                                            MensajeRepositoryPort mensajeRepositoryPort) {
         this.conversacionRepositoryPort = conversacionRepositoryPort;
         this.eliminacionGrupoPort = eliminacionGrupoPort;
+        this.mensajeRepositoryPort = mensajeRepositoryPort;
     }
 
     @Transactional
@@ -50,7 +54,7 @@ public class SolicitarEliminacionGrupoUseCase {
         verificarPermiso(conversacion, solicitanteId);
 
         // Idempotente: si ya hay una solicitud viva, se devuelve esa.
-        return eliminacionGrupoPort.buscarPendiente(conversacionId)
+        EliminacionGrupoModel solicitud = eliminacionGrupoPort.buscarPendiente(conversacionId)
                 .orElseGet(() -> {
                     OffsetDateTime ahora = OffsetDateTime.now();
                     return eliminacionGrupoPort.guardar(EliminacionGrupoModel.builder()
@@ -62,6 +66,15 @@ public class SolicitarEliminacionGrupoUseCase {
                             .estado("PENDIENTE")
                             .build());
                 });
+
+        // Soft delete: el grupo y sus mensajes dejan de verse YA en todas las
+        // apps; las filas siguen en BD hasta la purga de las 72 horas.
+        OffsetDateTime marcadoEn = solicitud.getSolicitadoEn() != null
+                ? solicitud.getSolicitadoEn() : OffsetDateTime.now();
+        conversacionRepositoryPort.marcarEliminado(conversacionId, marcadoEn);
+        mensajeRepositoryPort.marcarEliminados(conversacionId, marcadoEn);
+
+        return solicitud;
     }
 
     private void verificarPermiso(ConversacionModel conversacion, UUID solicitanteId) {

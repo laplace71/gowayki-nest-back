@@ -43,4 +43,31 @@ public class ChatWebSocketNotificacionAdapter implements ChatNotificacionPort {
                 "conversacionId", conversacionId
         ));
     }
+
+    @Override
+    public void conversacionLimpiada(UUID conversacionId, UUID usuarioId, OffsetDateTime limpiadoEn) {
+        handler.emitirEventoAUsuario(usuarioId, Map.of(
+                "tipo", "CONVERSACION_LIMPIADA",
+                "conversacionId", conversacionId,
+                "limpiadoEn", limpiadoEn.toString()
+        ));
+    }
+
+    @Override
+    public void mensajeOculto(UUID conversacionId, UUID mensajeId, UUID usuarioId) {
+        handler.emitirEventoAUsuario(usuarioId, Map.of(
+                "tipo", "MENSAJE_OCULTO",
+                "conversacionId", conversacionId,
+                "mensajeId", mensajeId
+        ));
+    }
+
+    @Override
+    public void mensajeEliminado(UUID conversacionId, UUID mensajeId, List<UUID> participantes) {
+        handler.emitirEventoAUsuarios(participantes, Map.of(
+                "tipo", "MENSAJE_ELIMINADO",
+                "conversacionId", conversacionId,
+                "mensajeId", mensajeId
+        ));
+    }
 }

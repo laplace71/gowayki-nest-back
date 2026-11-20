@@ -4,6 +4,7 @@ import com.gowayki.nest.domain.model.ConversacionModel;
 import com.gowayki.nest.domain.model.ParticipanteConversacion;
 import com.gowayki.nest.domain.repository.ConversacionRepositoryPort;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -26,6 +27,8 @@ public class FakeConversacionRepository implements ConversacionRepositoryPort {
     public final Map<UUID, ConversacionModel> conversaciones = new LinkedHashMap<>();
     public final Map<UUID, Map<UUID, String>> participantesPorConversacion = new HashMap<>();
     public final Map<UUID, Set<UUID>> ocultas = new HashMap<>();
+    public final Map<UUID, OffsetDateTime> marcadasEliminadas = new LinkedHashMap<>();
+    public final Map<String, OffsetDateTime> limpiezasPorUsuario = new LinkedHashMap<>();
 
     public final List<UUID> borradas = new ArrayList<>();
     public final List<String> llamadas = new ArrayList<>();
@@ -73,6 +76,7 @@ public class FakeConversacionRepository implements ConversacionRepositoryPort {
         return conversaciones.values().stream()
                 .filter(c -> participantesPorConversacion.getOrDefault(c.getId(), Map.of()).containsKey(usuarioId))
                 .filter(c -> !ocultas.getOrDefault(usuarioId, Set.of()).contains(c.getId()))
+                .filter(c -> !marcadasEliminadas.containsKey(c.getId()))
                 .toList();
     }
 
@@ -80,6 +84,7 @@ public class FakeConversacionRepository implements ConversacionRepositoryPort {
     public List<ConversacionModel> findByUsuarioIdSinFiltroOcultas(UUID usuarioId) {
         return conversaciones.values().stream()
                 .filter(c -> participantesPorConversacion.getOrDefault(c.getId(), Map.of()).containsKey(usuarioId))
+                .filter(c -> !marcadasEliminadas.containsKey(c.getId()))
                 .toList();
     }
 
@@ -160,6 +165,18 @@ public class FakeConversacionRepository implements ConversacionRepositoryPort {
     }
 
     @Override
+    public void marcarEliminado(UUID conversacionId, OffsetDateTime momento) {
+        llamadas.add("marcarEliminado");
+        marcadasEliminadas.put(conversacionId, momento);
+    }
+
+    @Override
+    public void desmarcarEliminado(UUID conversacionId) {
+        llamadas.add("desmarcarEliminado");
+        marcadasEliminadas.remove(conversacionId);
+    }
+
+    @Override
     public void ocultarParaUsuario(UUID conversacionId, UUID usuarioId) {
         llamadas.add("ocultarParaUsuario:" + usuarioId);
         ocultas.computeIfAbsent(usuarioId, k -> new LinkedHashSet<>()).add(conversacionId);
@@ -172,6 +189,12 @@ public class FakeConversacionRepository implements ConversacionRepositoryPort {
         if (propias != null) {
             propias.remove(conversacionId);
         }
+    }
+
+    @Override
+    public void limpiarParaUsuario(UUID conversacionId, UUID usuarioId, OffsetDateTime momento) {
+        llamadas.add("limpiarParaUsuario:" + usuarioId);
+        limpiezasPorUsuario.put(conversacionId + "|" + usuarioId, momento);
     }
 
     @Override

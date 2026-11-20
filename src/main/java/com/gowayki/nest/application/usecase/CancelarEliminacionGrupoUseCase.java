@@ -6,6 +6,7 @@ import com.gowayki.nest.domain.model.ConversacionModel;
 import com.gowayki.nest.domain.model.EliminacionGrupoModel;
 import com.gowayki.nest.domain.repository.ConversacionRepositoryPort;
 import com.gowayki.nest.domain.repository.EliminacionGrupoPort;
+import com.gowayki.nest.domain.repository.MensajeRepositoryPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,11 +22,14 @@ public class CancelarEliminacionGrupoUseCase {
 
     private final ConversacionRepositoryPort conversacionRepositoryPort;
     private final EliminacionGrupoPort eliminacionGrupoPort;
+    private final MensajeRepositoryPort mensajeRepositoryPort;
 
     public CancelarEliminacionGrupoUseCase(ConversacionRepositoryPort conversacionRepositoryPort,
-                                           EliminacionGrupoPort eliminacionGrupoPort) {
+                                           EliminacionGrupoPort eliminacionGrupoPort,
+                                           MensajeRepositoryPort mensajeRepositoryPort) {
         this.conversacionRepositoryPort = conversacionRepositoryPort;
         this.eliminacionGrupoPort = eliminacionGrupoPort;
+        this.mensajeRepositoryPort = mensajeRepositoryPort;
     }
 
     @Transactional
@@ -50,5 +54,9 @@ public class CancelarEliminacionGrupoUseCase {
         }
 
         eliminacionGrupoPort.marcarCancelada(solicitud.getId(), solicitanteId, OffsetDateTime.now());
+
+        // Se deshace el soft delete: el grupo y sus mensajes vuelven a verse.
+        conversacionRepositoryPort.desmarcarEliminado(conversacionId);
+        mensajeRepositoryPort.desmarcarEliminados(conversacionId);
     }
 }

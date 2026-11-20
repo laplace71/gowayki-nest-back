@@ -16,4 +16,13 @@ public interface ChatNotificacionPort {
     void eliminacionCancelada(UUID conversacionId, List<UUID> participantes);
 
     void grupoEliminado(UUID conversacionId, List<UUID> participantes);
+
+    /** Aviso personal: ese usuario limpió el chat en otro dispositivo. */
+    void conversacionLimpiada(UUID conversacionId, UUID usuarioId, OffsetDateTime limpiadoEn);
+
+    /** Aviso personal: ese usuario ocultó un mensaje en otro dispositivo. */
+    void mensajeOculto(UUID conversacionId, UUID mensajeId, UUID usuarioId);
+
+    /** Aviso a todos: el emisor eliminó un mensaje para todos. */
+    void mensajeEliminado(UUID conversacionId, UUID mensajeId, List<UUID> participantes);
 }
