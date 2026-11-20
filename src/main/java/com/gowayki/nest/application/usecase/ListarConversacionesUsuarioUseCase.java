@@ -35,9 +35,11 @@ public class ListarConversacionesUsuarioUseCase {
         List<ConversacionModel> conversaciones = conversacionRepositoryPort.findByUsuarioId(usuarioId);
 
         return conversaciones.stream().map(c -> {
-            int total = mensajeRepositoryPort.contarMensajes(c.getId());
+            // El resumen respeta lo mismo que el historial: mensajes limpiados
+            // u ocultos para este usuario no deben aparecer como preview.
+            int total = mensajeRepositoryPort.contarMensajes(c.getId(), usuarioId);
             int participantesCount = conversacionRepositoryPort.contarParticipantes(c.getId());
-            Optional<MensajeModel> ultimoOpt = mensajeRepositoryPort.findUltimoMensaje(c.getId());
+            Optional<MensajeModel> ultimoOpt = mensajeRepositoryPort.findUltimoMensaje(c.getId(), usuarioId);
             Optional<EliminacionGrupoModel> eliminacionOpt = eliminacionGrupoPort.buscarPendiente(c.getId());
 
             MensajeResponseDto ultimoDto = ultimoOpt.map(m -> MensajeResponseDto.builder()

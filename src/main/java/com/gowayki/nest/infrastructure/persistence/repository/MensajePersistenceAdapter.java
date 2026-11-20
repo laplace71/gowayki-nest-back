@@ -73,14 +73,14 @@ public class MensajePersistenceAdapter implements MensajeRepositoryPort {
     }
 
     @Override
-    public Optional<MensajeModel> findUltimoMensaje(UUID conversacionId) {
-        return mensajeRepository.findTopByConversacionIdOrderByCreatedAtDesc(conversacionId)
+    public Optional<MensajeModel> findUltimoMensaje(UUID conversacionId, UUID usuarioId) {
+        return mensajeRepository.findTopVisibleParaUsuario(conversacionId, usuarioId)
                 .map(mensajeMapper::toDomain);
     }
 
     @Override
-    public int contarMensajes(UUID conversacionId) {
-        return mensajeRepository.countByConversacionId(conversacionId);
+    public int contarMensajes(UUID conversacionId, UUID usuarioId) {
+        return mensajeRepository.countVisiblesParaUsuario(conversacionId, usuarioId);
     }
 
     @Override

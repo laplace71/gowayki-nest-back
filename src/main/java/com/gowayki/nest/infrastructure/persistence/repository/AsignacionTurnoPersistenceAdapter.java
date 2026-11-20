@@ -49,11 +49,14 @@ public class AsignacionTurnoPersistenceAdapter implements AsignacionTurnoReposit
             subruta = subrutaRepository.findById(model.getSubrutaId())
                     .orElseThrow(() -> new IllegalArgumentException("Subruta no encontrada."));
         } else if (model.getSubrutaCodigo() != null && !model.getSubrutaCodigo().isBlank()) {
-            subruta = subrutaRepository.findByCodigo(model.getSubrutaCodigo()).orElse(null);
+            subruta = subrutaRepository.findByCodigo(model.getSubrutaCodigo())
+                    .orElseThrow(() -> new IllegalArgumentException("Subruta no encontrada."));
         }
 
         AsignacionTurno entity = turnoMapper.toEntity(model, chofer, unidad, subruta);
-        AsignacionTurno guardado = turnoRepository.save(entity);
+        // Flush aquí para que la violación del índice único (unidad ocupada)
+        // llegue al catch del caso de uso como 409 y no como 500 al commit.
+        AsignacionTurno guardado = turnoRepository.saveAndFlush(entity);
         // Vincular también la unidad a la subruta concreta operada
         if (subruta != null && (unidad.getSubruta() == null || !unidad.getSubruta().getId().equals(subruta.getId()))) {
             unidad.setSubruta(subruta);

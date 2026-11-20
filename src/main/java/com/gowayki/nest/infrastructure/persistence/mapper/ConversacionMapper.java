@@ -21,6 +21,7 @@ public class ConversacionMapper {
                 .claveRuta(entity.getClaveRuta())
                 .createdBy(entity.getCreatedBy() != null ? entity.getCreatedBy().getId() : null)
                 .createdAt(entity.getCreatedAt())
+                .eliminadoEn(entity.getEliminadoEn())
                 .build();
     }
 

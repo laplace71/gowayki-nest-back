@@ -33,6 +33,11 @@ public class EliminacionGrupoPersistenceAdapter implements EliminacionGrupoPort 
     }
 
     @Override
+    public Optional<EliminacionGrupoModel> buscarPorIdParaActualizar(UUID id) {
+        return repository.findByIdForUpdate(id).map(this::toDomain);
+    }
+
+    @Override
     @Transactional
     public EliminacionGrupoModel guardar(EliminacionGrupoModel model) {
         EliminacionGrupo entity = EliminacionGrupo.builder()
@@ -62,26 +67,16 @@ public class EliminacionGrupoPersistenceAdapter implements EliminacionGrupoPort 
     @Override
     @Transactional
     public void marcarCancelada(UUID id, UUID usuarioId, OffsetDateTime momento) {
-        repository.findById(id).ifPresent(entity -> {
-            entity.setEstado(EliminacionGrupo.CANCELADA);
-            entity.setCanceladaPor(usuarioId);
-            entity.setCanceladaEn(momento);
-            repository.save(entity);
-        });
+        // UPDATE condicional: una vez ejecutada, nadie puede "cancelarla" y
+        // dejar el grupo borrado sin solicitud que lo explique.
+        repository.cancelarSiPendiente(id, usuarioId, momento);
     }
 
     @Override
     @Transactional
     public void marcarEjecutada(UUID id, OffsetDateTime momento) {
-        repository.findById(id).ifPresent(entity -> {
-            entity.setEstado(EliminacionGrupo.EJECUTADA);
-            entity.setEjecutadaEn(momento);
-            // Se desvincula antes de que la purga borre la conversación: la FK
-            // es ON DELETE SET NULL, pero el UPDATE explícito evita que la
-            // entidad en memoria vuelva a escribir el id de una fila borrada.
-            entity.setConversacionId(null);
-            repository.save(entity);
-        });
+        // UPDATE condicional + desvinculación de la conversación antes del DELETE.
+        repository.ejecutarSiPendiente(id, momento);
     }
 
     private EliminacionGrupoModel toDomain(EliminacionGrupo entity) {

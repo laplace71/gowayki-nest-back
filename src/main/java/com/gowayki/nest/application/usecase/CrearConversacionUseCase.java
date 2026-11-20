@@ -78,6 +78,13 @@ public class CrearConversacionUseCase {
                                     : conversacionRepositoryPort.findByTitulo(titulo));
             if (existenteOpt.isPresent()) {
                 ConversacionModel existente = existenteOpt.get();
+                // Un título igual al de un chat privado no da acceso: solo se
+                // reutiliza un grupo de ruta real, nunca otra conversación.
+                if (!Boolean.TRUE.equals(existente.getEsGrupo())
+                        || !"GRUPO_RUTA".equals(existente.getTipoConversacion())) {
+                    throw new AccesoDenegadoException(
+                            "Ese título pertenece a una conversación que no es un grupo de ruta.");
+                }
                 if (eliminacionGrupoPort.buscarPendiente(existente.getId()).isPresent()) {
                     throw new ConflictoException(
                             "Este grupo está pendiente de eliminación definitiva; ya no admite nuevos participantes.");
@@ -119,7 +126,13 @@ public class CrearConversacionUseCase {
             }
         }
 
-        List<UUID> participantes = new ArrayList<>(usuariosEntrando(request));
+        // Crear un grupo de ruta es unirse uno mismo: no se aceptan ids de
+        // otros conductores, porque salirDeOtrosGruposRuta los sacaría de sus
+        // rutas actuales sin invitación ni permiso.
+        Set<UUID> entrando = usuariosEntrando(request);
+        List<UUID> participantes = esGrupoRuta && request.getCreatedBy() != null
+                ? new ArrayList<>(List.of(request.getCreatedBy()))
+                : new ArrayList<>(entrando);
 
         ConversacionModel model = ConversacionModel.builder()
                 .titulo(titulo)
@@ -195,6 +208,14 @@ public class CrearConversacionUseCase {
                 conversacionRepositoryPort.quitarParticipante(c.getId(), usuarioId);
             } catch (IllegalArgumentException ignored) {
                 // Ya no era participante; nada que hacer.
+            }
+            // Mismo ciclo de vida que "salir del grupo": si quien se va era el
+            // único administrador, el grupo no puede quedarse sin nadie que
+            // pueda administrarlo.
+            conversacionRepositoryPort.limpiarEstadoUsuario(c.getId(), usuarioId);
+            if (Boolean.TRUE.equals(c.getEsGrupo())
+                    || "GRUPO_RUTA".equals(c.getTipoConversacion())) {
+                conversacionRepositoryPort.promoverAdministradorSiHaceFalta(c.getId());
             }
 
             if (conversacionRepositoryPort.contarParticipantes(c.getId()) == 0) {

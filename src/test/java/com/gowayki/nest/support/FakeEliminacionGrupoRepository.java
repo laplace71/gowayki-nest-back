@@ -44,6 +44,11 @@ public class FakeEliminacionGrupoRepository implements EliminacionGrupoPort {
     }
 
     @Override
+    public Optional<EliminacionGrupoModel> buscarPorIdParaActualizar(UUID id) {
+        return buscarPorId(id);
+    }
+
+    @Override
     public EliminacionGrupoModel guardar(EliminacionGrupoModel model) {
         llamadas.add("guardar");
         UUID id = model.getId() != null ? model.getId() : UUID.randomUUID();

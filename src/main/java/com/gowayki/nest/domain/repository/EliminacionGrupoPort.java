@@ -12,6 +12,9 @@ public interface EliminacionGrupoPort {
 
     Optional<EliminacionGrupoModel> buscarPorId(UUID id);
 
+    /** Lectura con bloqueo de fila para serializar cancelación y purga. */
+    Optional<EliminacionGrupoModel> buscarPorIdParaActualizar(UUID id);
+
     EliminacionGrupoModel guardar(EliminacionGrupoModel model);
 
     /** Solicitudes pendientes cuyo plazo de 72 h ya venció. */

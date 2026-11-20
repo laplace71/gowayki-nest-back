@@ -34,6 +34,12 @@ public class AsignarRolParticipanteUseCase {
         ConversacionModel conversacion = conversacionRepositoryPort.findById(conversacionId)
                 .orElseThrow(() -> new IllegalArgumentException("La conversación no existe."));
 
+        // El creador conserva el derecho solo mientras siga siendo participante:
+        // quien salió del grupo no puede cambiar los roles de quienes quedan.
+        if (!conversacionRepositoryPort.existeParticipante(conversacionId, solicitanteId)) {
+            throw new AccesoDenegadoException("No formas parte de esta conversación.");
+        }
+
         boolean solicitanteEsCreador = conversacion.getCreatedBy() != null
                 && conversacion.getCreatedBy().equals(solicitanteId);
         boolean solicitanteEsAdmin = conversacionRepositoryPort.esAdministrador(conversacionId, solicitanteId);

@@ -47,7 +47,8 @@ public class EjecutarEliminacionGrupoUseCase {
 
     @Transactional
     public Optional<Resultado> ejecutar(UUID solicitudId) {
-        Optional<EliminacionGrupoModel> encontrada = eliminacionGrupoPort.buscarPorId(solicitudId);
+        // Bloqueo de fila: cancelación y purga se serializan sobre la misma solicitud.
+        Optional<EliminacionGrupoModel> encontrada = eliminacionGrupoPort.buscarPorIdParaActualizar(solicitudId);
         if (encontrada.isEmpty()) {
             return Optional.empty();
         }
@@ -74,8 +75,11 @@ public class EjecutarEliminacionGrupoUseCase {
 
         ConversacionModel conversacion = conversacionOpt.get();
         if (!sigueAutorizado(conversacion, solicitud.getSolicitadoPor())) {
-            // Perdió el permiso (dejó de ser admin o de participar): no se borra.
+            // Perdió el permiso (dejó de ser admin o de participar): no se borra
+            // y el grupo vuelve a verse para quienes siguen dentro.
             eliminacionGrupoPort.marcarCancelada(solicitud.getId(), null, ahora);
+            conversacionRepositoryPort.desmarcarEliminado(conversacionId);
+            mensajeRepositoryPort.desmarcarEliminados(conversacionId);
             return Optional.empty();
         }
 

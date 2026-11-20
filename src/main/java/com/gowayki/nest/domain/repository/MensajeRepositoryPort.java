@@ -19,8 +19,11 @@ public interface MensajeRepositoryPort {
     /** Visibles para un usuario concreto (respeta su marca de "limpiar"). */
     List<MensajeModel> findVisiblesParaUsuario(UUID conversacionId, UUID usuarioId);
 
-    Optional<MensajeModel> findUltimoMensaje(UUID conversacionId);
-    int contarMensajes(UUID conversacionId);
+    /** Último mensaje visible para ese usuario (para el resumen del chat). */
+    Optional<MensajeModel> findUltimoMensaje(UUID conversacionId, UUID usuarioId);
+
+    /** Cantidad de mensajes visibles para ese usuario. */
+    int contarMensajes(UUID conversacionId, UUID usuarioId);
 
     Optional<MensajeModel> findById(UUID mensajeId);
 

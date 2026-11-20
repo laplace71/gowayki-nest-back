@@ -73,13 +73,14 @@ public class FakeMensajeRepository implements MensajeRepositoryPort {
     }
 
     @Override
-    public Optional<MensajeModel> findUltimoMensaje(UUID conversacionId) {
-        return findByConversacionId(conversacionId).stream().reduce((a, b) -> b);
+    public Optional<MensajeModel> findUltimoMensaje(UUID conversacionId, UUID usuarioId) {
+        List<MensajeModel> visibles = findVisiblesParaUsuario(conversacionId, usuarioId);
+        return visibles.isEmpty() ? Optional.empty() : Optional.of(visibles.get(visibles.size() - 1));
     }
 
     @Override
-    public int contarMensajes(UUID conversacionId) {
-        return findByConversacionId(conversacionId).size();
+    public int contarMensajes(UUID conversacionId, UUID usuarioId) {
+        return findVisiblesParaUsuario(conversacionId, usuarioId).size();
     }
 
     @Override

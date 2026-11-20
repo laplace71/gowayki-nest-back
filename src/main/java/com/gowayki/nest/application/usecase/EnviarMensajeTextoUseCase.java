@@ -3,6 +3,7 @@ package com.gowayki.nest.application.usecase;
 import com.gowayki.nest.application.dto.EnviarMensajeTextoRequestDto;
 import com.gowayki.nest.application.dto.MensajeResponseDto;
 import com.gowayki.nest.domain.exception.AccesoDenegadoException;
+import com.gowayki.nest.domain.exception.ConflictoException;
 import com.gowayki.nest.domain.model.ConversacionModel;
 import com.gowayki.nest.domain.model.MensajeModel;
 import com.gowayki.nest.domain.model.UsuarioModel;
@@ -36,6 +37,10 @@ public class EnviarMensajeTextoUseCase {
 
         ConversacionModel conversacion = conversacionRepositoryPort.findById(conversacionId)
                 .orElseThrow(() -> new IllegalArgumentException("La conversación no existe."));
+
+        if (conversacion.getEliminadoEn() != null) {
+            throw new ConflictoException("Este grupo está pendiente de eliminación y no acepta mensajes.");
+        }
 
         if (request.getEmisorId() == null
                 || !conversacionRepositoryPort.existeParticipante(conversacionId, request.getEmisorId())) {

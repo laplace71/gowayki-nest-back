@@ -24,5 +24,7 @@ public class ConversacionModel {
     private String claveRuta;
     private UUID createdBy;
     private OffsetDateTime createdAt;
+    /** Soft delete de la eliminación definitiva del grupo (72 h). */
+    private OffsetDateTime eliminadoEn;
 }
 
