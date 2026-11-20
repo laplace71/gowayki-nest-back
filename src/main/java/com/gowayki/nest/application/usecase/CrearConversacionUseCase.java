@@ -2,6 +2,7 @@ package com.gowayki.nest.application.usecase;
 
 import com.gowayki.nest.application.dto.ConversacionResponseDto;
 import com.gowayki.nest.application.dto.CrearConversacionRequestDto;
+import com.gowayki.nest.domain.exception.AccesoDenegadoException;
 import com.gowayki.nest.domain.exception.ConflictoException;
 import com.gowayki.nest.domain.model.ConversacionModel;
 import com.gowayki.nest.domain.model.MensajeModel;
@@ -82,6 +83,20 @@ public class CrearConversacionUseCase {
                             "Este grupo está pendiente de eliminación definitiva; ya no admite nuevos participantes.");
                 }
                 Set<UUID> entrando = usuariosEntrando(request);
+
+                // Unirse uno mismo al grupo sigue siendo libre (es lo que hace
+                // la app al entrar a una subruta). Invitar a OTROS conductores
+                // es una acción de administración: creador o cualquier ADMIN,
+                // incluidos los que heredaron el rol.
+                UUID solicitante = request.getCreatedBy();
+                boolean soloYo = entrando.size() == 1 && entrando.contains(solicitante);
+                boolean esCreador = existente.getCreatedBy() != null
+                        && existente.getCreatedBy().equals(solicitante);
+                boolean esAdmin = conversacionRepositoryPort.esAdministrador(existente.getId(), solicitante);
+                if (!soloYo && !esCreador && !esAdmin) {
+                    throw new AccesoDenegadoException("Solo un administrador puede añadir miembros.");
+                }
+
                 for (UUID pId : entrando) {
                     conversacionRepositoryPort.agregarParticipante(existente.getId(), pId);
                 }
