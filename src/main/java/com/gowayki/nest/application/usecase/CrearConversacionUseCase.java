@@ -52,13 +52,13 @@ public class CrearConversacionUseCase {
         String titulo = request.getTitulo() != null ? request.getTitulo().trim() : null;
         boolean esGrupo = Boolean.TRUE.equals(request.getEsGrupo());
 
-        // El tipo se toma de los campos estructurados. Solo si no vienen (app
-        // antigua) se acepta el prefijo del título como compatibilidad.
+        // Seguridad: solo el tipo estructurado decide si es un grupo de ruta.
+        // Ni el título ni la sola presencia de claveRuta bastan: cualquier
+        // usuario podría crear un grupo con un título parecido y, si lo
+        // aceptáramos, al entrar a su ruta se lo sacaría de ese grupo.
         String claveRuta = request.getClaveRuta() != null ? request.getClaveRuta().trim() : null;
-        boolean esGrupoRuta = esGrupo && (
-                "GRUPO_RUTA".equals(request.getTipoConversacion())
-                        || (claveRuta != null && !claveRuta.isBlank())
-                        || (titulo != null && titulo.startsWith("GRUPO · ")));
+        boolean tipoRutaExplicito = "GRUPO_RUTA".equals(request.getTipoConversacion());
+        boolean esGrupoRuta = esGrupo && tipoRutaExplicito;
 
         if (esGrupoRuta && (claveRuta == null || claveRuta.isBlank())) {
             claveRuta = claveDesdeTitulo(titulo);
@@ -154,7 +154,7 @@ public class CrearConversacionUseCase {
                 .build();
     }
 
-    /** "GRUPO · Subruta X" -> "Subruta X". Solo para peticiones antiguas. */
+    /** "GRUPO · Subruta X" -> "Subruta X". Solo para peticiones antiguas ya marcadas como ruta. */
     private static String claveDesdeTitulo(String titulo) {
         if (titulo == null) return null;
         String prefijo = "GRUPO · ";
@@ -162,17 +162,11 @@ public class CrearConversacionUseCase {
     }
 
     /**
-     * ¿Es un grupo de subruta? Se mira el tipo estructurado y, solo para filas
-     * antiguas sin migrar, el título como respaldo.
+     * ¿Es un grupo de subruta? Solo el tipo estructurado. El título es texto
+     * libre y no puede decidir la membresía de un chofer.
      */
     private static boolean esGrupoDeRuta(ConversacionModel conversacion) {
-        if (conversacion.getTipoConversacion() != null) {
-            return "GRUPO_RUTA".equals(conversacion.getTipoConversacion());
-        }
-        String titulo = conversacion.getTitulo();
-        return Boolean.TRUE.equals(conversacion.getEsGrupo())
-                && titulo != null
-                && titulo.startsWith("GRUPO · ");
+        return "GRUPO_RUTA".equals(conversacion.getTipoConversacion());
     }
 
     private Set<UUID> usuariosEntrando(CrearConversacionRequestDto request) {

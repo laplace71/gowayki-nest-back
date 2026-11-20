@@ -71,7 +71,9 @@ class CrearConversacionUseCaseTest {
     }
 
     @Test
-    void unaAppAntiguaSinCamposNuevosSigueFuncionandoPorElTitulo() {
+    void unTituloParecidoNoConvierteUnGrupoNormalEnGrupoDeRuta() {
+        // Antes el prefijo del título bastaba: cualquier usuario podía crear un
+        // grupo "GRUPO · X" y al abrir su ruta se lo sacaba de ese grupo.
         ConversacionResponseDto creada = crear.ejecutar(CrearConversacionRequestDto.builder()
                 .titulo("GRUPO · Línea 7 · Central")
                 .esGrupo(true)
@@ -79,8 +81,22 @@ class CrearConversacionUseCaseTest {
                 .participanteIds(List.of(ana))
                 .build());
 
-        assertEquals("GRUPO_RUTA", creada.getTipoConversacion());
-        assertEquals("Línea 7 · Central", creada.getClaveRuta());
+        assertEquals("GRUPO", creada.getTipoConversacion());
+        assertEquals(null, creada.getClaveRuta());
+    }
+
+    @Test
+    void laSolaClaveRutaNoDeclaraUnGrupoDeRuta() {
+        ConversacionResponseDto creada = crear.ejecutar(CrearConversacionRequestDto.builder()
+                .titulo("Operativos Central")
+                .esGrupo(true)
+                .claveRuta("Línea 7 · Central")
+                .createdBy(ana)
+                .participanteIds(List.of(ana))
+                .build());
+
+        assertEquals("GRUPO", creada.getTipoConversacion());
+        assertEquals(null, creada.getClaveRuta());
     }
 
     @Test
@@ -111,6 +127,8 @@ class CrearConversacionUseCaseTest {
         CrearConversacionRequestDto peticion = CrearConversacionRequestDto.builder()
                 .titulo("GRUPO · Línea 7 · Central")
                 .esGrupo(true)
+                .tipoConversacion("GRUPO_RUTA")
+                .claveRuta("Línea 7 · Central")
                 .createdBy(ana)
                 .participanteIds(List.of(ana))
                 .build();
