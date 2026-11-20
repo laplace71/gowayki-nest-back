@@ -55,6 +55,9 @@ public class ObtenerUnidadesUseCase {
                 .placa(model.getPlaca())
                 .lineaId(model.getLineaId())
                 .lineaNombre(model.getLineaNombre())
+                .subrutaId(model.getSubrutaId())
+                .subrutaCodigo(model.getSubrutaCodigo())
+                .subrutaNombre(model.getSubrutaNombre())
                 .estado(model.getEstado())
                 .posicionActual(posicionDto)
                 .build();

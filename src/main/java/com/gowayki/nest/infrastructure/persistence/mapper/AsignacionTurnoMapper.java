@@ -2,6 +2,7 @@ package com.gowayki.nest.infrastructure.persistence.mapper;
 
 import com.gowayki.nest.domain.model.AsignacionTurnoModel;
 import com.gowayki.nest.infrastructure.persistence.entity.AsignacionTurno;
+import com.gowayki.nest.infrastructure.persistence.entity.Subruta;
 import com.gowayki.nest.infrastructure.persistence.entity.Unidad;
 import com.gowayki.nest.infrastructure.persistence.entity.Usuario;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,7 @@ public class AsignacionTurnoMapper {
             return null;
         }
 
+        Subruta sr = entity.getSubruta();
         return AsignacionTurnoModel.builder()
                 .id(entity.getId())
                 .choferId(entity.getChofer() != null ? entity.getChofer().getId() : null)
@@ -24,6 +26,9 @@ public class AsignacionTurnoMapper {
                 .lineaId(entity.getUnidad() != null && entity.getUnidad().getLinea() != null ? entity.getUnidad().getLinea().getId() : null)
                 .lineaNombre(entity.getUnidad() != null && entity.getUnidad().getLinea() != null ? entity.getUnidad().getLinea().getNombre() : null)
                 .lineaColorHex(entity.getUnidad() != null && entity.getUnidad().getLinea() != null ? entity.getUnidad().getLinea().getColorHex() : null)
+                .subrutaId(sr != null ? sr.getId() : null)
+                .subrutaCodigo(sr != null ? sr.getCodigo() : null)
+                .subrutaNombre(sr != null ? sr.getNombre() : null)
                 .fecha(entity.getFecha())
                 .horaInicio(entity.getHoraInicio())
                 .horaFin(entity.getHoraFin())
@@ -33,7 +38,7 @@ public class AsignacionTurnoMapper {
                 .build();
     }
 
-    public AsignacionTurno toEntity(AsignacionTurnoModel model, Usuario chofer, Unidad unidad) {
+    public AsignacionTurno toEntity(AsignacionTurnoModel model, Usuario chofer, Unidad unidad, Subruta subruta) {
         if (model == null) {
             return null;
         }
@@ -42,6 +47,7 @@ public class AsignacionTurnoMapper {
                 .id(model.getId())
                 .chofer(chofer)
                 .unidad(unidad)
+                .subruta(subruta)
                 .fecha(model.getFecha())
                 .horaInicio(model.getHoraInicio())
                 .horaFin(model.getHoraFin())

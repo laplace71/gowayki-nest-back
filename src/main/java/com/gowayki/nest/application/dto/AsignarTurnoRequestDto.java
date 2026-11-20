@@ -18,6 +18,8 @@ import java.util.UUID;
 public class AsignarTurnoRequestDto {
     private UUID choferId;
     private Integer unidadId;
+    private Integer subrutaId;
+    private String subrutaCodigo;
     private LocalDate fecha;
     private OffsetDateTime horaInicio;
     private OffsetDateTime horaFin;

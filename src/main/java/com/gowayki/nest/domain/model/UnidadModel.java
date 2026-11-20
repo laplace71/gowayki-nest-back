@@ -17,6 +17,9 @@ public class UnidadModel {
     private String placa;
     private Integer lineaId;
     private String lineaNombre;
+    private Integer subrutaId;
+    private String subrutaCodigo;
+    private String subrutaNombre;
     private String estado;
     private PosicionGpsModel posicionActual;
 }
