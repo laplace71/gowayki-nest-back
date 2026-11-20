@@ -87,9 +87,9 @@ Es una operación distinta, nunca equivalente a "ocultar".
 
 El backend **no** usa Flyway/Liquibase (`spring.jpa.hibernate.ddl-auto=validate`). Las migraciones se entregan como SQL y deben aplicarse manualmente, en orden, contra la base de datos:
 
-1. `V7__ocultar_conversaciones_por_usuario.sql`
-2. `V8__eliminacion_definitiva_grupos.sql`
-3. `V9__archivos_pendientes_de_borrado.sql`
+1. `V07__ocultar_conversaciones_por_usuario.sql`
+2. `V08__eliminacion_definitiva_grupos.sql`
+3. `V09__archivos_pendientes_de_borrado.sql`
 4. `V10__antiguedad_participantes.sql`
 5. `V11__tipo_conversacion_estructurado.sql`
 

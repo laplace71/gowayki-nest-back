@@ -24,6 +24,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-root}
       PORT: 8080
       UPLOAD_DIR: /app/uploads/audios
+      JWT_SECRET: ${JWT_SECRET:?Definir JWT_SECRET en el entorno antes de levantar la API}
     ports:
       - "8080:8080"
     volumes:
