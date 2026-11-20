@@ -68,7 +68,7 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
                                  @Param("usuarioId") UUID usuarioId);
 
     @Query("SELECT COUNT(m) FROM Mensaje m WHERE m.conversacion.id = :conversacionId " +
-            "AND m.eliminadoEn IS NULL AND m.emisorId <> :usuarioId " +
+            "AND m.eliminadoEn IS NULL AND m.emisor.id <> :usuarioId " +
             "AND (m.estado IS NULL OR m.estado <> 'LEIDO') " +
             "AND NOT EXISTS (SELECT 1 FROM ConversacionUsuarioEstado e " +
             "                WHERE e.id.conversacionId = :conversacionId AND e.id.usuarioId = :usuarioId " +
