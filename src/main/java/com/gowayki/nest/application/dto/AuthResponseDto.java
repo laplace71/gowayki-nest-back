@@ -15,5 +15,7 @@ public class AuthResponseDto {
     private boolean exito;
     private String mensaje;
     private UsuarioResponseDto usuario;
+    /** JWT que la app debe enviar como `Authorization: Bearer <token>`. */
+    private String token;
 }
 

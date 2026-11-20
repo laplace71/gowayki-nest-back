@@ -5,6 +5,7 @@ import com.gowayki.nest.application.dto.LoginRequestDto;
 import com.gowayki.nest.application.dto.UsuarioResponseDto;
 import com.gowayki.nest.domain.model.UsuarioModel;
 import com.gowayki.nest.domain.repository.UsuarioRepositoryPort;
+import com.gowayki.nest.infrastructure.security.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -16,10 +17,13 @@ public class LoginUseCase {
 
     private final UsuarioRepositoryPort usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    public LoginUseCase(UsuarioRepositoryPort usuarioRepository, PasswordEncoder passwordEncoder) {
+    public LoginUseCase(UsuarioRepositoryPort usuarioRepository, PasswordEncoder passwordEncoder,
+                        JwtService jwtService) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     public AuthResponseDto ejecutar(LoginRequestDto request) {
@@ -70,6 +74,7 @@ public class LoginUseCase {
                 .exito(true)
                 .mensaje("Inicio de sesión exitoso.")
                 .usuario(toResponseDto(actualizado))
+                .token(jwtService.generar(actualizado.getId(), actualizado.getRol()))
                 .build();
     }
 
