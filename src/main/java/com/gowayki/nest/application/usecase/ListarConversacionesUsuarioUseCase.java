@@ -3,8 +3,10 @@ package com.gowayki.nest.application.usecase;
 import com.gowayki.nest.application.dto.ConversacionResponseDto;
 import com.gowayki.nest.application.dto.MensajeResponseDto;
 import com.gowayki.nest.domain.model.ConversacionModel;
+import com.gowayki.nest.domain.model.EliminacionGrupoModel;
 import com.gowayki.nest.domain.model.MensajeModel;
 import com.gowayki.nest.domain.repository.ConversacionRepositoryPort;
+import com.gowayki.nest.domain.repository.EliminacionGrupoPort;
 import com.gowayki.nest.domain.repository.MensajeRepositoryPort;
 import org.springframework.stereotype.Service;
 
@@ -17,20 +19,26 @@ public class ListarConversacionesUsuarioUseCase {
 
     private final ConversacionRepositoryPort conversacionRepositoryPort;
     private final MensajeRepositoryPort mensajeRepositoryPort;
+    private final EliminacionGrupoPort eliminacionGrupoPort;
 
     public ListarConversacionesUsuarioUseCase(ConversacionRepositoryPort conversacionRepositoryPort,
-                                            MensajeRepositoryPort mensajeRepositoryPort) {
+                                             MensajeRepositoryPort mensajeRepositoryPort,
+                                             EliminacionGrupoPort eliminacionGrupoPort) {
         this.conversacionRepositoryPort = conversacionRepositoryPort;
         this.mensajeRepositoryPort = mensajeRepositoryPort;
+        this.eliminacionGrupoPort = eliminacionGrupoPort;
     }
 
     public List<ConversacionResponseDto> ejecutar(UUID usuarioId) {
+        // El repositorio ya excluye las que este usuario ocultó: ocultar es
+        // personal y no afecta a los demás participantes.
         List<ConversacionModel> conversaciones = conversacionRepositoryPort.findByUsuarioId(usuarioId);
 
         return conversaciones.stream().map(c -> {
             int total = mensajeRepositoryPort.contarMensajes(c.getId());
             int participantesCount = conversacionRepositoryPort.contarParticipantes(c.getId());
             Optional<MensajeModel> ultimoOpt = mensajeRepositoryPort.findUltimoMensaje(c.getId());
+            Optional<EliminacionGrupoModel> eliminacionOpt = eliminacionGrupoPort.buscarPendiente(c.getId());
 
             MensajeResponseDto ultimoDto = ultimoOpt.map(m -> MensajeResponseDto.builder()
                     .id(m.getId())
@@ -49,13 +57,17 @@ public class ListarConversacionesUsuarioUseCase {
                     .id(c.getId())
                     .titulo(c.getTitulo())
                     .esGrupo(c.getEsGrupo())
+                    .tipoConversacion(c.getTipoConversacion())
+                    .claveRuta(c.getClaveRuta())
                     .createdBy(c.getCreatedBy())
                     .createdAt(c.getCreatedAt())
                     .totalMensajes(total)
                     .ultimoMensaje(ultimoDto)
                     .totalParticipantes(participantesCount)
+                    .miRol(conversacionRepositoryPort.obtenerRol(c.getId(), usuarioId))
+                    .eliminacionPendiente(eliminacionOpt.isPresent())
+                    .eliminacionProgramadaPara(eliminacionOpt.map(EliminacionGrupoModel::getEjecutarDespues).orElse(null))
                     .build();
         }).toList();
     }
 }
-

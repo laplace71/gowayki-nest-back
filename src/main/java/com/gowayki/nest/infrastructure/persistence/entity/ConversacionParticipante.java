@@ -33,4 +33,9 @@ public class ConversacionParticipante {
     @Column(name = "ultimo_leido_at", nullable = false)
     @Builder.Default
     private OffsetDateTime ultimoLeidoAt = OffsetDateTime.now();
+
+    /** Cuándo se unió al grupo. Define quién hereda la administración. */
+    @Column(name = "agregado_en", nullable = false, updatable = false)
+    @Builder.Default
+    private OffsetDateTime agregadoEn = OffsetDateTime.now();
 }

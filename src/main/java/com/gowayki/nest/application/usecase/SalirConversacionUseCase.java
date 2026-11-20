@@ -1,0 +1,83 @@
+package com.gowayki.nest.application.usecase;
+
+import com.gowayki.nest.domain.exception.AccesoDenegadoException;
+import com.gowayki.nest.domain.exception.NoAutenticadoException;
+import com.gowayki.nest.domain.model.ConversacionModel;
+import com.gowayki.nest.domain.model.MensajeModel;
+import com.gowayki.nest.domain.repository.ArchivoPendienteBorradoPort;
+import com.gowayki.nest.domain.repository.ConversacionRepositoryPort;
+import com.gowayki.nest.domain.repository.MensajeRepositoryPort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
+
+/**
+ * "Salir del grupo": saca al usuario de la conversación. El grupo y sus
+ * mensajes siguen existiendo para los demás.
+ *
+ * Si el grupo se queda sin nadie, se borra entero. Los audios no se tocan aquí:
+ * se encolan para borrarlos cuando el commit ya esté firme.
+ */
+@Service
+public class SalirConversacionUseCase {
+
+    private final ConversacionRepositoryPort conversacionRepositoryPort;
+    private final MensajeRepositoryPort mensajeRepositoryPort;
+    private final ArchivoPendienteBorradoPort archivoPendienteBorradoPort;
+
+    public SalirConversacionUseCase(ConversacionRepositoryPort conversacionRepositoryPort,
+                                    MensajeRepositoryPort mensajeRepositoryPort,
+                                    ArchivoPendienteBorradoPort archivoPendienteBorradoPort) {
+        this.conversacionRepositoryPort = conversacionRepositoryPort;
+        this.mensajeRepositoryPort = mensajeRepositoryPort;
+        this.archivoPendienteBorradoPort = archivoPendienteBorradoPort;
+    }
+
+    /**
+     * @return true si la conversación quedó sin participantes y se eliminó por completo.
+     */
+    @Transactional
+    public boolean ejecutar(UUID conversacionId, UUID usuarioId) {
+        if (usuarioId == null) {
+            throw new NoAutenticadoException("Se requiere un usuario autenticado.");
+        }
+
+        // Bloqueo de la conversación: evita que dos "salir" simultáneos dejen el
+        // grupo sin nadie y se borre dos veces, o que se pierda la herencia de
+        // administración.
+        ConversacionModel conversacion = conversacionRepositoryPort.bloquearParaActualizar(conversacionId)
+                .orElseThrow(() -> new IllegalArgumentException("La conversación no existe."));
+
+        if (!conversacionRepositoryPort.existeParticipante(conversacionId, usuarioId)) {
+            throw new AccesoDenegadoException("No formas parte de esta conversación.");
+        }
+
+        conversacionRepositoryPort.quitarParticipante(conversacionId, usuarioId);
+        // Si había ocultado el grupo, al salir se limpia: si vuelve, debe verlo.
+        conversacionRepositoryPort.limpiarEstadoUsuario(conversacionId, usuarioId);
+
+        if (Boolean.TRUE.equals(conversacion.getEsGrupo())
+                && conversacionRepositoryPort.contarParticipantes(conversacionId) == 0) {
+            // Se quedó sin nadie: se elimina, pero los archivos se borran después
+            // del commit (ver LimpiarArchivosPendientesUseCase).
+            List<String> audios = mensajeRepositoryPort.findByConversacionId(conversacionId).stream()
+                    .map(MensajeModel::getAudioUrl)
+                    .filter(Objects::nonNull)
+                    .toList();
+            conversacionRepositoryPort.eliminar(conversacionId);
+            audios.forEach(ruta -> archivoPendienteBorradoPort.encolar(ruta, "GRUPO_VACIO"));
+            return true;
+        }
+
+        // Si se fue el último administrador, el grupo no puede quedarse sin
+        // nadie que pueda administrarlo: hereda el participante más antiguo.
+        if (Boolean.TRUE.equals(conversacion.getEsGrupo())) {
+            conversacionRepositoryPort.promoverAdministradorSiHaceFalta(conversacionId);
+        }
+
+        return false;
+    }
+}

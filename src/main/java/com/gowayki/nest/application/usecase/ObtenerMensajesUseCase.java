@@ -1,6 +1,8 @@
 package com.gowayki.nest.application.usecase;
 
 import com.gowayki.nest.application.dto.MensajeResponseDto;
+import com.gowayki.nest.domain.exception.AccesoDenegadoException;
+import com.gowayki.nest.domain.exception.NoAutenticadoException;
 import com.gowayki.nest.domain.model.MensajeModel;
 import com.gowayki.nest.domain.repository.ConversacionRepositoryPort;
 import com.gowayki.nest.domain.repository.MensajeRepositoryPort;
@@ -21,12 +23,18 @@ public class ObtenerMensajesUseCase {
         this.conversacionRepositoryPort = conversacionRepositoryPort;
     }
 
-    public List<MensajeResponseDto> ejecutar(UUID conversacionId) {
+    public List<MensajeResponseDto> ejecutar(UUID conversacionId, UUID solicitanteId) {
+        if (solicitanteId == null) {
+            throw new NoAutenticadoException("Se requiere un usuario autenticado.");
+        }
         if (conversacionRepositoryPort.findById(conversacionId).isEmpty()) {
             throw new IllegalArgumentException("La conversación no existe.");
         }
+        if (!conversacionRepositoryPort.existeParticipante(conversacionId, solicitanteId)) {
+            throw new AccesoDenegadoException("No formas parte de esta conversación.");
+        }
 
-        List<MensajeModel> mensajes = mensajeRepositoryPort.findByConversacionId(conversacionId);
+        List<MensajeModel> mensajes = mensajeRepositoryPort.findVisiblesParaUsuario(conversacionId, solicitanteId);
 
         return mensajes.stream()
                 .map(m -> MensajeResponseDto.builder()
