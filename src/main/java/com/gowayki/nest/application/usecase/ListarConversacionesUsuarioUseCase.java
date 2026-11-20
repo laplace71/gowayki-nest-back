@@ -38,6 +38,7 @@ public class ListarConversacionesUsuarioUseCase {
             // El resumen respeta lo mismo que el historial: mensajes limpiados
             // u ocultos para este usuario no deben aparecer como preview.
             int total = mensajeRepositoryPort.contarMensajes(c.getId(), usuarioId);
+            int noLeidos = mensajeRepositoryPort.contarNoLeidos(c.getId(), usuarioId);
             int participantesCount = conversacionRepositoryPort.contarParticipantes(c.getId());
             Optional<MensajeModel> ultimoOpt = mensajeRepositoryPort.findUltimoMensaje(c.getId(), usuarioId);
             Optional<EliminacionGrupoModel> eliminacionOpt = eliminacionGrupoPort.buscarPendiente(c.getId());
@@ -64,6 +65,7 @@ public class ListarConversacionesUsuarioUseCase {
                     .createdBy(c.getCreatedBy())
                     .createdAt(c.getCreatedAt())
                     .totalMensajes(total)
+                    .noLeidos(noLeidos)
                     .ultimoMensaje(ultimoDto)
                     .totalParticipantes(participantesCount)
                     .miRol(conversacionRepositoryPort.obtenerRol(c.getId(), usuarioId))

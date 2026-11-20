@@ -25,6 +25,9 @@ public interface MensajeRepositoryPort {
     /** Cantidad de mensajes visibles para ese usuario. */
     int contarMensajes(UUID conversacionId, UUID usuarioId);
 
+    /** Mensajes ajenos no leídos, respetando ocultos y "limpiar chat". */
+    int contarNoLeidos(UUID conversacionId, UUID usuarioId);
+
     Optional<MensajeModel> findById(UUID mensajeId);
 
     /** "Eliminar para mí": marca personal, los demás participantes no la notan. */

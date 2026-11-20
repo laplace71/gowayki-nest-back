@@ -25,6 +25,8 @@ public class ConversacionResponseDto {
     private UUID createdBy;
     private OffsetDateTime createdAt;
     private Integer totalMensajes;
+    /** Mensajes de otros participantes aún no leídos por quien pide la lista. */
+    private Integer noLeidos;
     private MensajeResponseDto ultimoMensaje;
     private Integer totalParticipantes;
     /** Rol del usuario que pidió la lista dentro de esta conversación (ADMIN, MIEMBRO o null). */

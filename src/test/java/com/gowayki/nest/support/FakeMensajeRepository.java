@@ -84,6 +84,14 @@ public class FakeMensajeRepository implements MensajeRepositoryPort {
     }
 
     @Override
+    public int contarNoLeidos(UUID conversacionId, UUID usuarioId) {
+        return (int) findVisiblesParaUsuario(conversacionId, usuarioId).stream()
+                .filter(m -> !usuarioId.equals(m.getEmisorId()))
+                .filter(m -> !"LEIDO".equals(m.getEstado()))
+                .count();
+    }
+
+    @Override
     public boolean existeAudioUrl(String audioUrl) {
         return audioUrl != null && audiosExistentes.contains(audioUrl);
     }
