@@ -32,6 +32,7 @@ public class ChatController {
     private final EnviarMensajeTextoUseCase enviarMensajeTextoUseCase;
     private final EnviarMensajeAudioUseCase enviarMensajeAudioUseCase;
     private final ObtenerMensajesUseCase obtenerMensajesUseCase;
+    private final MarcarConversacionLeidaUseCase marcarConversacionLeidaUseCase;
     private final ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase;
     private final OcultarConversacionUseCase ocultarConversacionUseCase;
     private final MostrarConversacionUseCase mostrarConversacionUseCase;
@@ -51,6 +52,7 @@ public class ChatController {
                           EnviarMensajeTextoUseCase enviarMensajeTextoUseCase,
                           EnviarMensajeAudioUseCase enviarMensajeAudioUseCase,
                           ObtenerMensajesUseCase obtenerMensajesUseCase,
+                          MarcarConversacionLeidaUseCase marcarConversacionLeidaUseCase,
                           ListarConversacionesUsuarioUseCase listarConversacionesUsuarioUseCase,
                           OcultarConversacionUseCase ocultarConversacionUseCase,
                           MostrarConversacionUseCase mostrarConversacionUseCase,
@@ -69,6 +71,7 @@ public class ChatController {
         this.enviarMensajeTextoUseCase = enviarMensajeTextoUseCase;
         this.enviarMensajeAudioUseCase = enviarMensajeAudioUseCase;
         this.obtenerMensajesUseCase = obtenerMensajesUseCase;
+        this.marcarConversacionLeidaUseCase = marcarConversacionLeidaUseCase;
         this.listarConversacionesUsuarioUseCase = listarConversacionesUsuarioUseCase;
         this.ocultarConversacionUseCase = ocultarConversacionUseCase;
         this.mostrarConversacionUseCase = mostrarConversacionUseCase;
@@ -111,6 +114,14 @@ public class ChatController {
     public ResponseEntity<List<MensajeResponseDto>> obtenerMensajes(@PathVariable UUID conversacionId,
                                                                    Authentication autenticacion) {
         return ResponseEntity.ok(obtenerMensajesUseCase.ejecutar(conversacionId, usuario(autenticacion)));
+    }
+
+    /** El chofer abrió el chat: sus mensajes ajenos dejan de contar como no leídos. */
+    @PostMapping("/conversaciones/{conversacionId}/leido")
+    public ResponseEntity<Void> marcarLeido(@PathVariable UUID conversacionId,
+                                            Authentication autenticacion) {
+        marcarConversacionLeidaUseCase.ejecutar(conversacionId, usuario(autenticacion));
+        return ResponseEntity.noContent().build();
     }
 
     /**

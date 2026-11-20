@@ -89,6 +89,12 @@ public class MensajePersistenceAdapter implements MensajeRepositoryPort {
     }
 
     @Override
+    @Transactional
+    public void marcarLeidos(UUID conversacionId, UUID usuarioId) {
+        mensajeRepository.marcarLeidos(conversacionId, usuarioId);
+    }
+
+    @Override
     public boolean existeAudioUrl(String audioUrl) {
         return audioUrl != null && mensajeRepository.existsByAudioUrl(audioUrl);
     }

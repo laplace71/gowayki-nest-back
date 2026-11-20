@@ -92,6 +92,14 @@ public class FakeMensajeRepository implements MensajeRepositoryPort {
     }
 
     @Override
+    public void marcarLeidos(UUID conversacionId, UUID usuarioId) {
+        llamadas.add("marcarLeidos");
+        findByConversacionId(conversacionId).stream()
+                .filter(m -> !usuarioId.equals(m.getEmisorId()))
+                .forEach(m -> m.setEstado("LEIDO"));
+    }
+
+    @Override
     public boolean existeAudioUrl(String audioUrl) {
         return audioUrl != null && audiosExistentes.contains(audioUrl);
     }

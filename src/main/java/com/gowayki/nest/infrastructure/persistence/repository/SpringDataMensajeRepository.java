@@ -78,6 +78,12 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
     int contarNoLeidos(@Param("conversacionId") UUID conversacionId,
                        @Param("usuarioId") UUID usuarioId);
 
+    @Modifying
+    @Query("UPDATE Mensaje m SET m.estado = 'LEIDO' WHERE m.conversacion.id = :conversacionId " +
+            "AND m.emisor.id <> :usuarioId")
+    void marcarLeidos(@Param("conversacionId") UUID conversacionId,
+                      @Param("usuarioId") UUID usuarioId);
+
     boolean existsByAudioUrl(String audioUrl);
 
     @Modifying

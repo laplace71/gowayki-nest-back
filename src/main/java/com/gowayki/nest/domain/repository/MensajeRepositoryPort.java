@@ -28,6 +28,9 @@ public interface MensajeRepositoryPort {
     /** Mensajes ajenos no leídos, respetando ocultos y "limpiar chat". */
     int contarNoLeidos(UUID conversacionId, UUID usuarioId);
 
+    /** Marca como leídos los mensajes ajenos al abrir la conversación. */
+    void marcarLeidos(UUID conversacionId, UUID usuarioId);
+
     Optional<MensajeModel> findById(UUID mensajeId);
 
     /** "Eliminar para mí": marca personal, los demás participantes no la notan. */
