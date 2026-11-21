@@ -8,7 +8,9 @@ import com.gowayki.nest.domain.model.UsuarioModel;
 import com.gowayki.nest.domain.repository.AsignacionTurnoRepositoryPort;
 import com.gowayki.nest.domain.repository.UnidadRepositoryPort;
 import com.gowayki.nest.domain.repository.UsuarioRepositoryPort;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -29,6 +31,7 @@ public class AsignarTurnoUseCase {
         this.unidadRepositoryPort = unidadRepositoryPort;
     }
 
+    @Transactional
     public TurnoResponseDto ejecutar(AsignarTurnoRequestDto request) {
         if (request.getChoferId() == null) {
             throw new IllegalArgumentException("El id del chofer es obligatorio.");
@@ -58,6 +61,8 @@ public class AsignarTurnoUseCase {
                 .placa(unidad.getPlaca())
                 .lineaId(unidad.getLineaId())
                 .lineaNombre(unidad.getLineaNombre())
+                .subrutaId(request.getSubrutaId())
+                .subrutaCodigo(request.getSubrutaCodigo())
                 .fecha(fecha)
                 .horaInicio(horaInicio)
                 .horaFin(request.getHoraFin())
@@ -66,9 +71,13 @@ public class AsignarTurnoUseCase {
                 .createdAt(OffsetDateTime.now())
                 .build();
 
-        AsignacionTurnoModel guardado = turnoRepositoryPort.save(model);
-
-        return toDto(guardado);
+        try {
+            AsignacionTurnoModel guardado = turnoRepositoryPort.save(model);
+            return toDto(guardado);
+        } catch (DataIntegrityViolationException e) {
+            // Protección ante doble envío/carrera: índices únicos parciales en BD
+            throw new IllegalStateException("El chofer o la unidad ya tienen un turno activo o programado.");
+        }
     }
 
     private TurnoResponseDto toDto(AsignacionTurnoModel model) {
@@ -82,6 +91,9 @@ public class AsignarTurnoUseCase {
                 .lineaId(model.getLineaId())
                 .lineaNombre(model.getLineaNombre())
                 .lineaColorHex(model.getLineaColorHex())
+                .subrutaId(model.getSubrutaId())
+                .subrutaCodigo(model.getSubrutaCodigo())
+                .subrutaNombre(model.getSubrutaNombre())
                 .fecha(model.getFecha())
                 .horaInicio(model.getHoraInicio())
                 .horaFin(model.getHoraFin())

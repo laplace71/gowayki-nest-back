@@ -9,5 +9,6 @@ import java.util.UUID;
 public interface SpringDataConversacionParticipanteRepository extends JpaRepository<ConversacionParticipante, ConversacionParticipanteId> {
     boolean existsByIdConversacionIdAndIdChoferId(UUID conversacionId, UUID choferId);
     long countByIdConversacionId(UUID conversacionId);
+    java.util.List<ConversacionParticipante> findAllByIdConversacionId(UUID conversacionId);
 }
 

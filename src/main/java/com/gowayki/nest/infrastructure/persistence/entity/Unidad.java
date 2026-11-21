@@ -27,6 +27,10 @@ public class Unidad {
     @JoinColumn(name = "linea_id", nullable = false)
     private Linea linea;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subruta_id")
+    private Subruta subruta;
+
     @Column(nullable = false, length = 20)
     @Builder.Default
     private String estado = "OPERATIVA";

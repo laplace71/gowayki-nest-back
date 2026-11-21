@@ -72,7 +72,7 @@ El servidor iniciará en `http://localhost:8080`.
 
 La base de datos cuenta con 11 tablas organizadas por módulos en `src/main/resources/db/migration/`:
 
-1. **Flota y GPS (`V1__flota_y_gps.sql`):**
+1. **Flota y GPS (`V01__flota_y_gps.sql`):**
    * `linea`: Rutas y corredores de combis.
    * `unidad`: Vehículos físicos y números de padrón.
    * `unidad_posicion`: Telemetría viva con coordenadas PostGIS (`Point, 4326`) para calcular combis cercanas.

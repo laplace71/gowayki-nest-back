@@ -31,6 +31,9 @@ public class UnidadMapper {
                 .placa(entity.getPlaca())
                 .lineaId(entity.getLinea() != null ? entity.getLinea().getId() : null)
                 .lineaNombre(entity.getLinea() != null ? entity.getLinea().getNombre() : null)
+                .subrutaId(entity.getSubruta() != null ? entity.getSubruta().getId() : null)
+                .subrutaCodigo(entity.getSubruta() != null ? entity.getSubruta().getCodigo() : null)
+                .subrutaNombre(entity.getSubruta() != null ? entity.getSubruta().getNombre() : null)
                 .estado(entity.getEstado())
                 .posicionActual(posicionModel)
                 .build();

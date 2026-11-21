@@ -18,10 +18,22 @@ public class ConversacionResponseDto {
     private UUID id;
     private String titulo;
     private Boolean esGrupo;
+    /** PRIVADA, GRUPO o GRUPO_RUTA. */
+    private String tipoConversacion;
+    /** Subruta concreta cuando el tipo es GRUPO_RUTA. */
+    private String claveRuta;
     private UUID createdBy;
     private OffsetDateTime createdAt;
     private Integer totalMensajes;
+    /** Mensajes de otros participantes aún no leídos por quien pide la lista. */
+    private Integer noLeidos;
     private MensajeResponseDto ultimoMensaje;
     private Integer totalParticipantes;
+    /** Rol del usuario que pidió la lista dentro de esta conversación (ADMIN, MIEMBRO o null). */
+    private String miRol;
+    /** true si hay una solicitud de eliminación definitiva esperando las 72 h. */
+    private Boolean eliminacionPendiente;
+    /** Cuándo se ejecutará la eliminación definitiva, si está pendiente. */
+    private OffsetDateTime eliminacionProgramadaPara;
 }
 

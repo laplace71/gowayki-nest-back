@@ -19,8 +19,21 @@ public class PuntoControl {
     private Integer id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "linea_id", nullable = false)
+    @JoinColumn(name = "linea_id")
     private Linea linea;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subruta_id")
+    private Subruta subruta;
+
+    @Column(length = 10)
+    private String sentido;
+
+    @Column(name = "externo_id", length = 50)
+    private String externoId;
+
+    @Column(length = 120)
+    private String distrito;
 
     @Column(nullable = false, length = 100)
     private String nombre;

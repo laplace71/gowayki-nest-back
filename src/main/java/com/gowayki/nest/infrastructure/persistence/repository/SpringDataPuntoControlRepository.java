@@ -7,5 +7,6 @@ import java.util.List;
 
 public interface SpringDataPuntoControlRepository extends JpaRepository<PuntoControl, Integer> {
     List<PuntoControl> findByLineaIdOrderByOrdenAsc(Integer lineaId);
+    List<PuntoControl> findBySubrutaIdAndSentidoOrderByOrdenAsc(Integer subrutaId, String sentido);
 }
 

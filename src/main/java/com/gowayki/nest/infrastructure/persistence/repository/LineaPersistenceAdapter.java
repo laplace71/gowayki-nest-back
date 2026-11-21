@@ -1,5 +1,6 @@
 package com.gowayki.nest.infrastructure.persistence.repository;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -29,21 +30,17 @@ public class LineaPersistenceAdapter implements LineaRepositoryPort {
 
     @Override
     public List<LineaModel> findAll() {
+        // Los paraderos se sirven por subruta en /api/rutas/{routeId}/paraderos.
+        // No se cargan aquí para evitar payloads masivos tras la unificación en punto_control.
         return lineaRepository.findAll().stream()
-                .map(linea -> {
-                    List<PuntoControl> puntos = puntoControlRepository.findByLineaIdOrderByOrdenAsc(linea.getId());
-                    return lineaMapper.toDomain(linea, puntos);
-                })
+                .map(linea -> lineaMapper.toDomain(linea, Collections.emptyList()))
                 .toList();
     }
 
     @Override
     public Optional<LineaModel> findById(Integer id) {
         return lineaRepository.findById(id)
-                .map(linea -> {
-                    List<PuntoControl> puntos = puntoControlRepository.findByLineaIdOrderByOrdenAsc(linea.getId());
-                    return lineaMapper.toDomain(linea, puntos);
-                });
+                .map(linea -> lineaMapper.toDomain(linea, Collections.emptyList()));
     }
 }
 
