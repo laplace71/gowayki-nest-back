@@ -12,6 +12,14 @@ BEGIN
                    WHERE table_name = 'usuario' AND column_name = 'token_version') THEN
         ALTER TABLE usuario ADD COLUMN token_version INTEGER NOT NULL DEFAULT 0;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'usuario' AND column_name = 'eliminado_en') THEN
+        ALTER TABLE usuario ADD COLUMN eliminado_en TIMESTAMPTZ;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_name = 'usuario' AND column_name = 'reactivado_en') THEN
+        ALTER TABLE usuario ADD COLUMN reactivado_en TIMESTAMPTZ;
+    END IF;
     IF EXISTS (SELECT 1 FROM information_schema.columns
                WHERE table_name = 'subruta' AND column_name = 'imagen_url') THEN
         ALTER TABLE subruta DROP COLUMN imagen_url;
