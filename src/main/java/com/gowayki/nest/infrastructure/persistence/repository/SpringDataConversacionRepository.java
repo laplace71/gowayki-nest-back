@@ -52,6 +52,22 @@ public interface SpringDataConversacionRepository extends JpaRepository<Conversa
     void marcarEliminado(@Param("conversacionId") UUID conversacionId,
                          @Param("momento") OffsetDateTime momento);
 
+    @Modifying
+    @Query("DELETE FROM Mensaje m WHERE m.conversacion.id = :conversacionId")
+    void deleteMensajesByConversacionId(@Param("conversacionId") UUID conversacionId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "DELETE FROM conversacion_participante WHERE conversacion_id = :id", nativeQuery = true)
+    void deleteParticipantesNativo(@Param("id") UUID id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "DELETE FROM mensaje WHERE conversacion_id = :id", nativeQuery = true)
+    void deleteMensajesNativo(@Param("id") UUID id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "DELETE FROM conversacion WHERE id = :id", nativeQuery = true)
+    void deleteConversacionNativo(@Param("id") UUID id);
+
     /** Quita la marca si se cancela la eliminación dentro de las 72 horas. */
     @Modifying
     @Query("UPDATE Conversacion c SET c.eliminadoEn = NULL WHERE c.id = :conversacionId")

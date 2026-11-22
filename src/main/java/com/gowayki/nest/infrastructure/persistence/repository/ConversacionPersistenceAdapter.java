@@ -192,8 +192,13 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
     @Override
     @Transactional
     public void eliminar(UUID conversacionId) {
-        // Participantes y mensajes se van solos: las dos FK son ON DELETE CASCADE.
-        conversacionRepository.deleteById(conversacionId);
+        // Borrado explícito: el cascade de Hibernate fallaba con referencias
+        // transitorias al flush. La BD también tiene ON DELETE CASCADE, así
+        // que estos delete son redundantes pero seguros.
+        // Borrado nativo: evita referencias transitorias de Hibernate al flush.
+        conversacionRepository.deleteParticipantesNativo(conversacionId);
+        conversacionRepository.deleteMensajesNativo(conversacionId);
+        conversacionRepository.deleteConversacionNativo(conversacionId);
     }
 
     @Override

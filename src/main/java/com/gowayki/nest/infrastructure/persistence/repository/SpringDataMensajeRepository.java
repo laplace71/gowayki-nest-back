@@ -88,6 +88,10 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
     boolean existsByAudioUrl(String audioUrl);
 
     @Modifying
+    @Query("DELETE FROM Mensaje m WHERE m.conversacion.id = :conversacionId")
+    void deleteByConversacionId(@Param("conversacionId") UUID conversacionId);
+
+    @Modifying
     @Query("UPDATE Mensaje m SET m.eliminadoEn = :momento " +
             "WHERE m.conversacion.id = :conversacionId AND m.eliminadoEn IS NULL")
     void marcarEliminados(@Param("conversacionId") UUID conversacionId,
