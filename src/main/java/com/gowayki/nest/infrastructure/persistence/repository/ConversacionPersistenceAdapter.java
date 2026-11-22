@@ -88,6 +88,13 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
     }
 
     @Override
+    public List<ConversacionModel> findByUsuarioIdIncluyendoPendientes(UUID usuarioId) {
+        return conversacionRepository.findByUsuarioIdIncluyendoPendientes(usuarioId).stream()
+                .map(conversacionMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public boolean existeParticipante(UUID conversacionId, UUID usuarioId) {
         return participanteRepository.existsByIdConversacionIdAndIdChoferId(conversacionId, usuarioId);
     }

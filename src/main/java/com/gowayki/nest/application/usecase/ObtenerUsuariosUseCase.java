@@ -17,7 +17,7 @@ public class ObtenerUsuariosUseCase {
     }
 
     public List<UsuarioResponseDto> obtenerTodos() {
-        return usuarioRepositoryPort.findAll().stream()
+        return usuarioRepositoryPort.findAllActivos().stream()
                 .map(this::mapToDto)
                 .toList();
     }

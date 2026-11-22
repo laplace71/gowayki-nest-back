@@ -37,6 +37,15 @@ public interface SpringDataConversacionRepository extends JpaRepository<Conversa
             "ORDER BY c.createdAt DESC")
     List<Conversacion> findByUsuarioIdSinFiltroOcultas(@Param("usuarioId") UUID usuarioId);
 
+    /**
+     * Igual que la anterior pero INCLUYE grupos con purga pendiente: al borrar
+     * una cuenta hay que cancelar la solicitud si el creador se va, en vez de
+     * dejar que el programador borre el grupo para los demás.
+     */
+    @Query("SELECT c FROM Conversacion c JOIN ConversacionParticipante cp ON cp.conversacion.id = c.id " +
+            "WHERE cp.chofer.id = :usuarioId ORDER BY c.createdAt DESC")
+    List<Conversacion> findByUsuarioIdIncluyendoPendientes(@Param("usuarioId") UUID usuarioId);
+
     /** Marca de soft delete al pedir la eliminación definitiva. */
     @Modifying
     @Query("UPDATE Conversacion c SET c.eliminadoEn = :momento WHERE c.id = :conversacionId")

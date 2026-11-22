@@ -14,6 +14,9 @@ public interface ConversacionRepositoryPort {
 
     /** Igual que `findByUsuarioId` pero incluyendo las que el usuario ocultó. */
     List<ConversacionModel> findByUsuarioIdSinFiltroOcultas(UUID usuarioId);
+
+    /** Incluye conversaciones con purga pendiente, solo para borrado de cuenta. */
+    List<ConversacionModel> findByUsuarioIdIncluyendoPendientes(UUID usuarioId);
     boolean existeParticipante(UUID conversacionId, UUID usuarioId);
     Optional<ConversacionModel> findByTitulo(String titulo);
 
