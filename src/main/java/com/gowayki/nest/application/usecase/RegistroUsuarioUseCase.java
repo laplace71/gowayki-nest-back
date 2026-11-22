@@ -65,6 +65,11 @@ public class RegistroUsuarioUseCase {
             existente.setIsOnline(false);
             existente.setIntentosFallidos(0);
             existente.setBloqueadoHasta(null);
+            // Solo se corta el historial si la cuenta había sido eliminada.
+            if (existente.getEliminadoEn() != null) {
+                existente.setReactivadoEn(java.time.OffsetDateTime.now());
+            }
+            existente.setEliminadoEn(null);
 
             UsuarioModel reactivado = usuarioRepository.save(existente);
             return AuthResponseDto.builder()

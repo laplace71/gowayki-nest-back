@@ -54,6 +54,14 @@ public class Usuario {
     @Builder.Default
     private Integer tokenVersion = 0;
 
+    /** Marca de la última eliminación de cuenta (para ocultar historial al reactivar). */
+    @Column(name = "eliminado_en")
+    private OffsetDateTime eliminadoEn;
+
+    /** Marca de la reactivación tras una eliminación (corte de historial). */
+    @Column(name = "reactivado_en")
+    private OffsetDateTime reactivadoEn;
+
     @Column(name = "intentos_fallidos", nullable = false)
     @Builder.Default
     private Integer intentosFallidos = 0;

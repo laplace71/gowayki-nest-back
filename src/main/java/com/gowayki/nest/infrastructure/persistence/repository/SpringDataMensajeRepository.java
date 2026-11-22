@@ -13,7 +13,6 @@ import java.util.UUID;
 
 public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID> {
 
-    /** Sin filtro de soft delete: la purga necesita ver todos los mensajes. */
     @Query("SELECT m FROM Mensaje m JOIN FETCH m.emisor WHERE m.conversacion.id = :conversacionId ORDER BY m.createdAt ASC")
     List<Mensaje> findByConversacionIdOrderByCreatedAtAsc(@Param("conversacionId") UUID conversacionId);
 
@@ -25,6 +24,9 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
     /**
      * Visibles para ESTE usuario: oculta lo anterior a su marca de "limpiar" y
      * los mensajes que él mismo marcó como ocultos para sí.
+     * El historial completo se muestra salvo que la cuenta se haya reactivado
+     * tras una eliminación: en ese caso solo se ven mensajes posteriores al
+     * reingreso.
      */
     @Query("SELECT m FROM Mensaje m JOIN FETCH m.emisor WHERE m.conversacion.id = :conversacionId " +
             "AND m.eliminadoEn IS NULL " +
@@ -33,6 +35,9 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
             "                  AND e.limpiadoEn IS NOT NULL AND m.createdAt <= e.limpiadoEn) " +
             "AND NOT EXISTS (SELECT 1 FROM MensajeOculto mo " +
             "                WHERE mo.id.mensajeId = m.id AND mo.id.usuarioId = :usuarioId) " +
+            "AND ((SELECT u.reactivadoEn FROM Usuario u WHERE u.id = :usuarioId) IS NULL " +
+            "     OR m.createdAt >= COALESCE((SELECT cp.agregadoEn FROM ConversacionParticipante cp " +
+            "                WHERE cp.id.conversacionId = :conversacionId AND cp.id.choferId = :usuarioId), m.createdAt)) " +
             "ORDER BY m.createdAt ASC")
     List<Mensaje> findVisiblesParaUsuario(@Param("conversacionId") UUID conversacionId,
                                           @Param("usuarioId") UUID usuarioId);
@@ -52,6 +57,9 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
             "                  AND e.limpiadoEn IS NOT NULL AND m.createdAt <= e.limpiadoEn) " +
             "AND NOT EXISTS (SELECT 1 FROM MensajeOculto mo " +
             "                WHERE mo.id.mensajeId = m.id AND mo.id.usuarioId = :usuarioId) " +
+            "AND ((SELECT u.reactivadoEn FROM Usuario u WHERE u.id = :usuarioId) IS NULL " +
+            "     OR m.createdAt >= COALESCE((SELECT cp.agregadoEn FROM ConversacionParticipante cp " +
+            "                WHERE cp.id.conversacionId = :conversacionId AND cp.id.choferId = :usuarioId), m.createdAt)) " +
             "ORDER BY m.createdAt DESC LIMIT 1")
     Optional<Mensaje> findTopVisibleParaUsuario(@Param("conversacionId") UUID conversacionId,
                                                 @Param("usuarioId") UUID usuarioId);
@@ -63,7 +71,10 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
             "                WHERE e.id.conversacionId = :conversacionId AND e.id.usuarioId = :usuarioId " +
             "                  AND e.limpiadoEn IS NOT NULL AND m.createdAt <= e.limpiadoEn) " +
             "AND NOT EXISTS (SELECT 1 FROM MensajeOculto mo " +
-            "                WHERE mo.id.mensajeId = m.id AND mo.id.usuarioId = :usuarioId) ")
+            "                WHERE mo.id.mensajeId = m.id AND mo.id.usuarioId = :usuarioId) " +
+            "AND ((SELECT u.reactivadoEn FROM Usuario u WHERE u.id = :usuarioId) IS NULL " +
+            "     OR m.createdAt >= COALESCE((SELECT cp.agregadoEn FROM ConversacionParticipante cp " +
+            "                WHERE cp.id.conversacionId = :conversacionId AND cp.id.choferId = :usuarioId), m.createdAt))")
     int countVisiblesParaUsuario(@Param("conversacionId") UUID conversacionId,
                                  @Param("usuarioId") UUID usuarioId);
 
@@ -75,7 +86,10 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
             "                WHERE e.id.conversacionId = :conversacionId AND e.id.usuarioId = :usuarioId " +
             "                  AND e.limpiadoEn IS NOT NULL AND m.createdAt <= e.limpiadoEn) " +
             "AND NOT EXISTS (SELECT 1 FROM MensajeOculto mo " +
-            "                WHERE mo.id.mensajeId = m.id AND mo.id.usuarioId = :usuarioId) ")
+            "                WHERE mo.id.mensajeId = m.id AND mo.id.usuarioId = :usuarioId) " +
+            "AND ((SELECT u.reactivadoEn FROM Usuario u WHERE u.id = :usuarioId) IS NULL " +
+            "     OR m.createdAt >= COALESCE((SELECT cp.agregadoEn FROM ConversacionParticipante cp " +
+            "                WHERE cp.id.conversacionId = :conversacionId AND cp.id.choferId = :usuarioId), m.createdAt))")
     int contarNoLeidos(@Param("conversacionId") UUID conversacionId,
                        @Param("usuarioId") UUID usuarioId);
 
@@ -85,11 +99,23 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
     void marcarLeidos(@Param("conversacionId") UUID conversacionId,
                       @Param("usuarioId") UUID usuarioId);
 
-    boolean existsByAudioUrl(String audioUrl);
+    @Modifying
+    @Query("UPDATE Mensaje m SET m.estado = 'LEIDO' WHERE m.conversacion.id = :conversacionId " +
+            "AND m.emisor.id <> :usuarioId")
+    void marcarLeidosParaUsuario(@Param("conversacionId") UUID conversacionId,
+                                 @Param("usuarioId") UUID usuarioId);
 
     @Modifying
     @Query("DELETE FROM Mensaje m WHERE m.conversacion.id = :conversacionId")
     void deleteByConversacionId(@Param("conversacionId") UUID conversacionId);
+
+    @Modifying
+    @Query("UPDATE Mensaje m SET m.eliminadoEn = :momento WHERE m.id = :mensajeId")
+    void marcarEliminado(@Param("mensajeId") UUID mensajeId, @Param("momento") OffsetDateTime momento);
+
+    @Modifying
+    @Query("DELETE FROM Mensaje m WHERE m.id = :mensajeId")
+    void eliminarFisicamente(@Param("mensajeId") UUID mensajeId);
 
     @Modifying
     @Query("UPDATE Mensaje m SET m.eliminadoEn = :momento " +
@@ -97,24 +123,10 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
     void marcarEliminados(@Param("conversacionId") UUID conversacionId,
                           @Param("momento") OffsetDateTime momento);
 
-    /**
-     * Al cancelar la eliminación del grupo se deshace SOLO el borrado del grupo.
-     * Los mensajes borrados para todos por su emisor tienen su propia solicitud
-     * y deben seguir ocultos.
-     */
     @Modifying
-    @Query("UPDATE Mensaje m SET m.eliminadoEn = NULL WHERE m.conversacion.id = :conversacionId " +
-            "AND NOT EXISTS (SELECT 1 FROM EliminacionMensaje em WHERE em.mensajeId = m.id)")
+    @Query("UPDATE Mensaje m SET m.eliminadoEn = NULL " +
+            "WHERE m.conversacion.id = :conversacionId")
     void desmarcarEliminados(@Param("conversacionId") UUID conversacionId);
 
-    /** Soft delete de un solo mensaje (para todos), sin tocar los del grupo. */
-    @Modifying
-    @Query("UPDATE Mensaje m SET m.eliminadoEn = :momento WHERE m.id = :mensajeId")
-    void marcarEliminado(@Param("mensajeId") UUID mensajeId, @Param("momento") OffsetDateTime momento);
-
-    /** Purga definitiva: la BD elimina en cascada las marcas personales y la solicitud. */
-    @Modifying
-    @Query("DELETE FROM Mensaje m WHERE m.id = :mensajeId")
-    void eliminarFisicamente(@Param("mensajeId") UUID mensajeId);
+    boolean existsByAudioUrl(String audioUrl);
 }
-

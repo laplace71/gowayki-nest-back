@@ -136,6 +136,8 @@ public class EliminarCuentaUseCase {
 
         // 3) Borrado lógico: conservamos id, nombre y mensajes; se revocan tokens.
         usuario.setTokenVersion((usuario.getTokenVersion() == null ? 0 : usuario.getTokenVersion()) + 1);
+        usuario.setEliminadoEn(OffsetDateTime.now());
+        usuario.setReactivadoEn(null);
         usuario.setActivo(false);
         usuario.setIsOnline(false);
         usuario.setIntentosFallidos(0);
