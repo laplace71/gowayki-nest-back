@@ -11,6 +11,7 @@ import com.gowayki.nest.infrastructure.persistence.entity.SubrutaGeometria;
 import com.gowayki.nest.infrastructure.persistence.repository.SpringDataPuntoControlRepository;
 import com.gowayki.nest.infrastructure.persistence.repository.SpringDataSubrutaGeometriaRepository;
 import com.gowayki.nest.infrastructure.persistence.repository.SpringDataSubrutaRepository;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -100,6 +101,20 @@ public class SubrutaController {
         } catch (Exception e) {
             return ResponseEntity.ok(Collections.emptyList());
         }
+    }
+
+    /** Foto de la ruta guardada en la BD; la app la pide por routeId. */
+    @GetMapping("/{routeId}/imagen")
+    public ResponseEntity<byte[]> imagen(@PathVariable String routeId) {
+        byte[] bytes = resolve(routeId)
+                .map(r -> r.subruta.getImagen())
+                .orElse(null);
+        if (bytes == null || bytes.length == 0) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("image/webp"))
+                .body(bytes);
     }
 
     private Optional<Resolved> resolve(String routeId) {

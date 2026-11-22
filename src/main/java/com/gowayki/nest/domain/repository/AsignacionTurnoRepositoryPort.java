@@ -12,4 +12,7 @@ public interface AsignacionTurnoRepositoryPort {
     Optional<AsignacionTurnoModel> findTurnoActivoPorChofer(UUID choferId);
     List<AsignacionTurnoModel> findByChoferId(UUID choferId);
     List<AsignacionTurnoModel> findTurnosActivos();
+
+    /** Cambia la subruta concreta de un turno existente. */
+    Optional<AsignacionTurnoModel> cambiarSubruta(UUID id, String subrutaCodigo);
 }
