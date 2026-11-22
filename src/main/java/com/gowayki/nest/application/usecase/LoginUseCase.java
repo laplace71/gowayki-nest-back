@@ -8,6 +8,7 @@ import com.gowayki.nest.domain.repository.UsuarioRepositoryPort;
 import com.gowayki.nest.infrastructure.security.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.Optional;
@@ -26,6 +27,7 @@ public class LoginUseCase {
         this.jwtService = jwtService;
     }
 
+    @Transactional
     public AuthResponseDto ejecutar(LoginRequestDto request) {
         if (request.getDni() == null || request.getDni().isBlank()) {
             throw new IllegalArgumentException("El DNI es obligatorio.");
