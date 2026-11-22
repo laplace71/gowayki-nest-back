@@ -1,5 +1,7 @@
 package com.gowayki.nest.domain.repository;
 
+import com.gowayki.nest.application.dto.MensajeResponseDto;
+
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -25,4 +27,7 @@ public interface ChatNotificacionPort {
 
     /** Aviso a todos: el emisor eliminó un mensaje para todos. */
     void mensajeEliminado(UUID conversacionId, UUID mensajeId, List<UUID> participantes);
+
+    /** Mensaje de sistema (salió / se unió) publicado en vivo. */
+    void mensajeSistema(MensajeResponseDto mensaje, List<UUID> participantes);
 }
