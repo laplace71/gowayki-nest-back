@@ -52,13 +52,15 @@ public class RegistroUsuarioUseCase {
             if (Boolean.TRUE.equals(existente.getActivo())) {
                 throw new IllegalArgumentException("El DNI ya está registrado en el sistema.");
             }
-            existente.setNombre(request.getNombre().trim());
-            existente.setTelefono(telefono);
-            existente.setEmail(request.getEmail() != null && !request.getEmail().isBlank()
-                    ? request.getEmail().trim() : null);
-            existente.setPinHash(pinHash);
-            existente.setFotoUrl(request.getFotoUrl());
-            existente.setRol(rol);
+            // El DNI solo no basta: se exige el PIN que tenía la cuenta. Así un
+            // tercero no puede reactivarla y cambiar la clave (CWE-620).
+            if (!passwordEncoder.matches(request.getPin().trim(), existente.getPinHash())) {
+                throw new IllegalArgumentException(
+                        "El PIN no corresponde a la cuenta eliminada. Usa el PIN anterior."
+                );
+            }
+            // Se conservan los datos originales (incluido el rol): solo se
+            // reactiva la misma fila para no perder mensajes ni escalar roles.
             existente.setActivo(true);
             existente.setIsOnline(false);
             existente.setIntentosFallidos(0);
@@ -78,7 +80,7 @@ public class RegistroUsuarioUseCase {
                             .rol(reactivado.getRol())
                             .isOnline(reactivado.getIsOnline())
                             .build())
-                    .token(jwtService.generar(reactivado.getId(), reactivado.getRol()))
+                    .token(jwtService.generar(reactivado.getId(), reactivado.getRol(), reactivado.getTokenVersion()))
                     .build();
         }
 
@@ -114,7 +116,7 @@ public class RegistroUsuarioUseCase {
                         .rol(guardado.getRol())
                         .isOnline(guardado.getIsOnline())
                         .build())
-                .token(jwtService.generar(guardado.getId(), guardado.getRol()))
+                .token(jwtService.generar(guardado.getId(), guardado.getRol(), guardado.getTokenVersion()))
                 .build();
     }
 }

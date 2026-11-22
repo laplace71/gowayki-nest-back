@@ -37,11 +37,12 @@ public class JwtService {
         this.duracionMillis = TimeUnit.HOURS.toMillis(Math.max(1, horas));
     }
 
-    public String generar(UUID usuarioId, String rol) {
+    public String generar(UUID usuarioId, String rol, Integer tokenVersion) {
         Instant ahora = Instant.now();
         return Jwts.builder()
                 .subject(usuarioId.toString())
                 .claim("rol", rol)
+                .claim("ver", tokenVersion == null ? 0 : tokenVersion)
                 .issuedAt(Date.from(ahora))
                 .expiration(Date.from(ahora.plusMillis(duracionMillis)))
                 .signWith(clave)
@@ -56,15 +57,17 @@ public class JwtService {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
+            Number ver = claims.get("ver", Number.class);
             return Optional.of(new IdentidadToken(
                     UUID.fromString(claims.getSubject()),
-                    claims.get("rol", String.class)
+                    claims.get("rol", String.class),
+                    ver == null ? 0 : ver.intValue()
             ));
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty();
         }
     }
 
-    public record IdentidadToken(UUID usuarioId, String rol) {
+    public record IdentidadToken(UUID usuarioId, String rol, int tokenVersion) {
     }
 }

@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.gowayki.nest.domain.model.UsuarioModel;
+import com.gowayki.nest.domain.repository.UsuarioRepositoryPort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -26,9 +28,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String PREFIJO = "Bearer ";
 
     private final JwtService jwtService;
+    private final UsuarioRepositoryPort usuarioRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, UsuarioRepositoryPort usuarioRepository) {
         this.jwtService = jwtService;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Override
@@ -39,6 +43,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (cabecera != null && cabecera.startsWith(PREFIJO)) {
             jwtService.validar(cabecera.substring(PREFIJO.length()).trim())
                     .ifPresent(identidad -> {
+                        // Un token emitido antes de eliminar la cuenta queda
+                        // revocado por tokenVersion y por el estado activo.
+                        UsuarioModel usuario = usuarioRepository.findById(identidad.usuarioId()).orElse(null);
+                        int versionActual = usuario == null || usuario.getTokenVersion() == null
+                                ? 0 : usuario.getTokenVersion();
+                        if (usuario == null || !Boolean.TRUE.equals(usuario.getActivo())
+                                || versionActual != identidad.tokenVersion()) {
+                            return;
+                        }
                         String rol = identidad.rol() == null ? "CHOFER" : identidad.rol();
                         UsernamePasswordAuthenticationToken autenticacion =
                                 UsernamePasswordAuthenticationToken.authenticated(

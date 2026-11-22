@@ -49,6 +49,11 @@ public class Usuario {
     @Builder.Default
     private Boolean activo = true;
 
+    /** Se incrementa al eliminar la cuenta para revocar todos los JWT emitidos. */
+    @Column(name = "token_version", nullable = false)
+    @Builder.Default
+    private Integer tokenVersion = 0;
+
     @Column(name = "intentos_fallidos", nullable = false)
     @Builder.Default
     private Integer intentosFallidos = 0;

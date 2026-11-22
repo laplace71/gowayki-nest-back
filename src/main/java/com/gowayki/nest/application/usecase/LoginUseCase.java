@@ -48,7 +48,7 @@ public class LoginUseCase {
         // sus mensajes se conservan. El re-registro por DNI la reactiva.
         if (Boolean.FALSE.equals(usuario.getActivo())) {
             throw new IllegalArgumentException(
-                    "Esta cuenta fue eliminada. Vuelve a registrarte con tu DNI para restaurarla."
+                    "Esta cuenta fue eliminada. Vuelve a registrarte con tu DNI y tu PIN anterior para restaurarla."
             );
         }
 
@@ -63,26 +63,30 @@ public class LoginUseCase {
             int intentos = (usuario.getIntentosFallidos() == null ? 0 : usuario.getIntentosFallidos()) + 1;
             usuario.setIntentosFallidos(intentos);
 
-            if (intentos >= 5) {
-                usuario.setBloqueadoHasta(OffsetDateTime.now().plusMinutes(15));
-            }
-            usuarioRepository.save(usuario);
+            OffsetDateTime bloqueado = intentos >= 5
+                    ? OffsetDateTime.now().plusMinutes(15) : null;
+            // Actualización parcial: nunca se guarda el modelo leído al inicio,
+            // porque podría sobrescribir un borrado de cuenta concurrente.
+            usuarioRepository.registrarIntentoFallido(usuario.getId(), intentos, bloqueado);
 
             int restantes = Math.max(0, 5 - intentos);
             throw new IllegalArgumentException("PIN incorrecto. Intentos restantes antes de bloqueo temporal: " + restantes);
         }
 
-        // Login exitoso: restablecer intentos y marcar online
-        usuario.setIntentosFallidos(0);
-        usuario.setBloqueadoHasta(null);
-        usuario.setIsOnline(true);
-        UsuarioModel actualizado = usuarioRepository.save(usuario);
+        // Login exitoso: actualizaciones parciales + revalidación de estado.
+        usuarioRepository.marcarLoginExitoso(usuario.getId());
+        if (!usuarioRepository.estaActivo(usuario.getId())) {
+            throw new IllegalArgumentException("Esta cuenta fue eliminada. No se puede iniciar sesión.");
+        }
+        UsuarioModel actualizado = usuarioRepository.findById(usuario.getId())
+                .orElseThrow(() -> new IllegalArgumentException("El usuario ya no existe."));
 
         return AuthResponseDto.builder()
                 .exito(true)
                 .mensaje("Inicio de sesión exitoso.")
                 .usuario(toResponseDto(actualizado))
-                .token(jwtService.generar(actualizado.getId(), actualizado.getRol()))
+                .token(jwtService.generar(
+                        actualizado.getId(), actualizado.getRol(), actualizado.getTokenVersion()))
                 .build();
     }
 

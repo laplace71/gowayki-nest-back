@@ -101,6 +101,8 @@ public class EliminarCuentaUseCase {
         }
 
         // 3) Borrado lógico: conservamos id, nombre y mensajes.
+        // La versión cambia para revocar de inmediato los JWT ya emitidos.
+        usuario.setTokenVersion((usuario.getTokenVersion() == null ? 0 : usuario.getTokenVersion()) + 1);
         usuario.setActivo(false);
         usuario.setIsOnline(false);
         usuario.setIntentosFallidos(0);

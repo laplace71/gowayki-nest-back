@@ -15,5 +15,16 @@ public interface UsuarioRepositoryPort {
     UsuarioModel save(UsuarioModel usuario);
 
     List<UsuarioModel> findAll();
+
+    List<UsuarioModel> findAllActivos();
+
+    /** Actualizaciones parciales: no sobrescriben el estado de la cuenta. */
+    void registrarIntentoFallido(UUID id, int intentos, java.time.OffsetDateTime bloqueadoHasta);
+
+    void marcarLoginExitoso(UUID id);
+
+    boolean estaActivo(UUID id);
+
+    void incrementarTokenVersion(UUID id);
 }
 
