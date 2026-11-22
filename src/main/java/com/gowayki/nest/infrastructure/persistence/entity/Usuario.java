@@ -44,6 +44,11 @@ public class Usuario {
     @Builder.Default
     private Boolean isOnline = false;
 
+    /** Borrado lógico: la fila se conserva para no romper el historial de chats. */
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean activo = true;
+
     @Column(name = "intentos_fallidos", nullable = false)
     @Builder.Default
     private Integer intentosFallidos = 0;

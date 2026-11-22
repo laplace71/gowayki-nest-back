@@ -48,6 +48,10 @@ public interface SpringDataConversacionRepository extends JpaRepository<Conversa
     @Query("UPDATE Conversacion c SET c.eliminadoEn = NULL WHERE c.id = :conversacionId")
     void desmarcarEliminado(@Param("conversacionId") UUID conversacionId);
 
+    @Modifying
+    @Query(value = "UPDATE conversacion SET created_by = :nuevo WHERE id = :id", nativeQuery = true)
+    void cambiarCreador(@Param("id") UUID id, @Param("nuevo") UUID nuevo);
+
     java.util.Optional<Conversacion> findFirstByTitulo(String titulo);
 
     java.util.Optional<Conversacion> findFirstByClaveRuta(String claveRuta);

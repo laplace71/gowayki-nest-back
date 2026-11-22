@@ -44,6 +44,14 @@ public class LoginUseCase {
                 new IllegalArgumentException("Credenciales inválidas: No existe usuario registrado con ese identificador.")
         );
 
+        // Cuenta eliminada (borrado lógico): no se puede entrar, pero la fila y
+        // sus mensajes se conservan. El re-registro por DNI la reactiva.
+        if (Boolean.FALSE.equals(usuario.getActivo())) {
+            throw new IllegalArgumentException(
+                    "Esta cuenta fue eliminada. Vuelve a registrarte con tu DNI para restaurarla."
+            );
+        }
+
         // Validar si la cuenta está bloqueada temporalmente
         if (usuario.getBloqueadoHasta() != null && usuario.getBloqueadoHasta().isAfter(OffsetDateTime.now())) {
             throw new IllegalStateException("Cuenta bloqueada temporalmente por exceso de intentos fallidos. Intente más tarde.");

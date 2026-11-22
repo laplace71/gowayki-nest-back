@@ -30,17 +30,20 @@ public class CrearConversacionUseCase {
     private final MensajeRepositoryPort mensajeRepositoryPort;
     private final ArchivoPendienteBorradoPort archivoPendienteBorradoPort;
     private final EliminacionGrupoPort eliminacionGrupoPort;
+    private final MensajeSistemaService mensajeSistemaService;
 
     public CrearConversacionUseCase(ConversacionRepositoryPort conversacionRepositoryPort,
                                    UsuarioRepositoryPort usuarioRepositoryPort,
                                    MensajeRepositoryPort mensajeRepositoryPort,
                                    ArchivoPendienteBorradoPort archivoPendienteBorradoPort,
-                                   EliminacionGrupoPort eliminacionGrupoPort) {
+                                   EliminacionGrupoPort eliminacionGrupoPort,
+                                   MensajeSistemaService mensajeSistemaService) {
         this.conversacionRepositoryPort = conversacionRepositoryPort;
         this.usuarioRepositoryPort = usuarioRepositoryPort;
         this.mensajeRepositoryPort = mensajeRepositoryPort;
         this.archivoPendienteBorradoPort = archivoPendienteBorradoPort;
         this.eliminacionGrupoPort = eliminacionGrupoPort;
+        this.mensajeSistemaService = mensajeSistemaService;
     }
 
     @Transactional
@@ -105,7 +108,12 @@ public class CrearConversacionUseCase {
                 }
 
                 for (UUID pId : entrando) {
+                    boolean yaEraParticipante = conversacionRepositoryPort
+                            .existeParticipante(existente.getId(), pId);
                     conversacionRepositoryPort.agregarParticipante(existente.getId(), pId);
+                    if (!yaEraParticipante) {
+                        mensajeSistemaService.avisar(existente.getId(), pId, "se unió al grupo");
+                    }
                 }
                 for (UUID pId : entrando) {
                     salirDeOtrosGruposRuta(pId, existente.getId());

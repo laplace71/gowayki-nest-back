@@ -247,6 +247,12 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
 
     @Override
     @Transactional
+    public void cambiarCreador(UUID conversacionId, UUID nuevoCreadorId) {
+        conversacionRepository.cambiarCreador(conversacionId, nuevoCreadorId);
+    }
+
+    @Override
+    @Transactional
     public Optional<UUID> promoverAdministradorSiHaceFalta(UUID conversacionId) {
         List<ConversacionParticipante> participantes =
                 participanteRepository.findAllByIdConversacionId(conversacionId);

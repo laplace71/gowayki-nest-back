@@ -33,6 +33,8 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
             "                  AND e.limpiadoEn IS NOT NULL AND m.createdAt <= e.limpiadoEn) " +
             "AND NOT EXISTS (SELECT 1 FROM MensajeOculto mo " +
             "                WHERE mo.id.mensajeId = m.id AND mo.id.usuarioId = :usuarioId) " +
+            "AND m.createdAt >= COALESCE((SELECT cp.agregadoEn FROM ConversacionParticipante cp " +
+            "                WHERE cp.id.conversacionId = :conversacionId AND cp.id.choferId = :usuarioId), m.createdAt) " +
             "ORDER BY m.createdAt ASC")
     List<Mensaje> findVisiblesParaUsuario(@Param("conversacionId") UUID conversacionId,
                                           @Param("usuarioId") UUID usuarioId);
@@ -52,6 +54,8 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
             "                  AND e.limpiadoEn IS NOT NULL AND m.createdAt <= e.limpiadoEn) " +
             "AND NOT EXISTS (SELECT 1 FROM MensajeOculto mo " +
             "                WHERE mo.id.mensajeId = m.id AND mo.id.usuarioId = :usuarioId) " +
+            "AND m.createdAt >= COALESCE((SELECT cp.agregadoEn FROM ConversacionParticipante cp " +
+            "                WHERE cp.id.conversacionId = :conversacionId AND cp.id.choferId = :usuarioId), m.createdAt) " +
             "ORDER BY m.createdAt DESC LIMIT 1")
     Optional<Mensaje> findTopVisibleParaUsuario(@Param("conversacionId") UUID conversacionId,
                                                 @Param("usuarioId") UUID usuarioId);
@@ -63,7 +67,9 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
             "                WHERE e.id.conversacionId = :conversacionId AND e.id.usuarioId = :usuarioId " +
             "                  AND e.limpiadoEn IS NOT NULL AND m.createdAt <= e.limpiadoEn) " +
             "AND NOT EXISTS (SELECT 1 FROM MensajeOculto mo " +
-            "                WHERE mo.id.mensajeId = m.id AND mo.id.usuarioId = :usuarioId)")
+            "                WHERE mo.id.mensajeId = m.id AND mo.id.usuarioId = :usuarioId) " +
+            "AND m.createdAt >= COALESCE((SELECT cp.agregadoEn FROM ConversacionParticipante cp " +
+            "                WHERE cp.id.conversacionId = :conversacionId AND cp.id.choferId = :usuarioId), m.createdAt)")
     int countVisiblesParaUsuario(@Param("conversacionId") UUID conversacionId,
                                  @Param("usuarioId") UUID usuarioId);
 
@@ -75,7 +81,9 @@ public interface SpringDataMensajeRepository extends JpaRepository<Mensaje, UUID
             "                WHERE e.id.conversacionId = :conversacionId AND e.id.usuarioId = :usuarioId " +
             "                  AND e.limpiadoEn IS NOT NULL AND m.createdAt <= e.limpiadoEn) " +
             "AND NOT EXISTS (SELECT 1 FROM MensajeOculto mo " +
-            "                WHERE mo.id.mensajeId = m.id AND mo.id.usuarioId = :usuarioId)")
+            "                WHERE mo.id.mensajeId = m.id AND mo.id.usuarioId = :usuarioId) " +
+            "AND m.createdAt >= COALESCE((SELECT cp.agregadoEn FROM ConversacionParticipante cp " +
+            "                WHERE cp.id.conversacionId = :conversacionId AND cp.id.choferId = :usuarioId), m.createdAt)")
     int contarNoLeidos(@Param("conversacionId") UUID conversacionId,
                        @Param("usuarioId") UUID usuarioId);
 

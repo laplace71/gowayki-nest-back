@@ -41,16 +41,50 @@ public class RegistroUsuarioUseCase {
 
         String dni = request.getDni().trim();
         String telefono = request.getTelefono().trim();
+        String pinHash = passwordEncoder.encode(request.getPin().trim());
+        String rol = (request.getRol() == null || request.getRol().isBlank()) ? "CHOFER" : request.getRol().trim().toUpperCase();
 
-        if (usuarioRepository.existsByDni(dni)) {
-            throw new IllegalArgumentException("El DNI ya está registrado en el sistema.");
+        // Re-registro con un DNI dado de baja: reactiva la MISMA fila, conservando
+        // el id y, por tanto, todos los mensajes y su nombre en el historial.
+        var existenteOpt = usuarioRepository.findByDni(dni);
+        if (existenteOpt.isPresent()) {
+            UsuarioModel existente = existenteOpt.get();
+            if (Boolean.TRUE.equals(existente.getActivo())) {
+                throw new IllegalArgumentException("El DNI ya está registrado en el sistema.");
+            }
+            existente.setNombre(request.getNombre().trim());
+            existente.setTelefono(telefono);
+            existente.setEmail(request.getEmail() != null && !request.getEmail().isBlank()
+                    ? request.getEmail().trim() : null);
+            existente.setPinHash(pinHash);
+            existente.setFotoUrl(request.getFotoUrl());
+            existente.setRol(rol);
+            existente.setActivo(true);
+            existente.setIsOnline(false);
+            existente.setIntentosFallidos(0);
+            existente.setBloqueadoHasta(null);
+
+            UsuarioModel reactivado = usuarioRepository.save(existente);
+            return AuthResponseDto.builder()
+                    .exito(true)
+                    .mensaje("Cuenta restaurada exitosamente.")
+                    .usuario(UsuarioResponseDto.builder()
+                            .id(reactivado.getId())
+                            .nombre(reactivado.getNombre())
+                            .dni(reactivado.getDni())
+                            .telefono(reactivado.getTelefono())
+                            .email(reactivado.getEmail())
+                            .fotoUrl(reactivado.getFotoUrl())
+                            .rol(reactivado.getRol())
+                            .isOnline(reactivado.getIsOnline())
+                            .build())
+                    .token(jwtService.generar(reactivado.getId(), reactivado.getRol()))
+                    .build();
         }
+
         if (usuarioRepository.existsByTelefono(telefono)) {
             throw new IllegalArgumentException("El número de teléfono ya está registrado en el sistema.");
         }
-
-        String pinHash = passwordEncoder.encode(request.getPin().trim());
-        String rol = (request.getRol() == null || request.getRol().isBlank()) ? "CHOFER" : request.getRol().trim().toUpperCase();
 
         UsuarioModel nuevoUsuario = UsuarioModel.builder()
                 .nombre(request.getNombre().trim())
