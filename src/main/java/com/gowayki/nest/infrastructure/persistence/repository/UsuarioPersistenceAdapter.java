@@ -63,5 +63,33 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
                 .map(usuarioMapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public List<UsuarioModel> findAllActivos() {
+        return springDataUsuarioRepository.findByActivoTrue().stream()
+                .map(usuarioMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public void registrarIntentoFallido(UUID id, int intentos, java.time.OffsetDateTime bloqueadoHasta) {
+        springDataUsuarioRepository.registrarIntentoFallido(id, intentos, bloqueadoHasta);
+    }
+
+    @Override
+    public void marcarLoginExitoso(UUID id) {
+        springDataUsuarioRepository.marcarLoginExitoso(id);
+    }
+
+    @Override
+    public boolean estaActivo(UUID id) {
+        Boolean activo = springDataUsuarioRepository.estaActivo(id);
+        return Boolean.TRUE.equals(activo);
+    }
+
+    @Override
+    public void incrementarTokenVersion(UUID id) {
+        springDataUsuarioRepository.incrementarTokenVersion(id);
+    }
 }
 

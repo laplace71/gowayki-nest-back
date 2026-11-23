@@ -24,11 +24,14 @@ public class AgregarParticipantesUseCase {
 
     private final ConversacionRepositoryPort conversacionRepositoryPort;
     private final EliminacionGrupoPort eliminacionGrupoPort;
+    private final MensajeSistemaService mensajeSistemaService;
 
     public AgregarParticipantesUseCase(ConversacionRepositoryPort conversacionRepositoryPort,
-                                       EliminacionGrupoPort eliminacionGrupoPort) {
+                                       EliminacionGrupoPort eliminacionGrupoPort,
+                                       MensajeSistemaService mensajeSistemaService) {
         this.conversacionRepositoryPort = conversacionRepositoryPort;
         this.eliminacionGrupoPort = eliminacionGrupoPort;
+        this.mensajeSistemaService = mensajeSistemaService;
     }
 
     @Transactional
@@ -55,7 +58,11 @@ public class AgregarParticipantesUseCase {
 
         for (UUID id : nuevosIds) {
             if (id == null) continue;
+            boolean yaEraParticipante = conversacionRepositoryPort.existeParticipante(conversacionId, id);
             conversacionRepositoryPort.agregarParticipante(conversacionId, id);
+            if (!yaEraParticipante) {
+                mensajeSistemaService.avisar(conversacionId, id, "se unió al grupo");
+            }
         }
     }
 }

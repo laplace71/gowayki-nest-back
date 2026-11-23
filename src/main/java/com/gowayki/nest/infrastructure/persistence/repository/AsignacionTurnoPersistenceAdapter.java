@@ -37,6 +37,27 @@ public class AsignacionTurnoPersistenceAdapter implements AsignacionTurnoReposit
 
     @Override
     @Transactional
+    public Optional<AsignacionTurnoModel> cambiarSubruta(UUID id, String subrutaCodigo) {
+        Subruta subruta = subrutaRepository.findByCodigo(subrutaCodigo)
+                .orElseThrow(() -> new IllegalArgumentException("Subruta no encontrada."));
+        int filas = turnoRepository.cambiarSubrutaSiActivo(id, subruta.getId());
+        if (filas == 0) {
+            return Optional.empty(); // turno finalizado o inexistente
+        }
+        var turno = turnoRepository.findById(id).orElseThrow();
+        // La unidad debe reflejar la misma subruta operada (la ruta del chofer).
+        if (turno.getUnidad() != null) {
+            Unidad unidad = turno.getUnidad();
+            if (unidad.getSubruta() == null || !unidad.getSubruta().getId().equals(subruta.getId())) {
+                unidad.setSubruta(subruta);
+                unidadRepository.save(unidad);
+            }
+        }
+        return Optional.of(turnoMapper.toDomain(turno));
+    }
+
+    @Override
+    @Transactional
     public AsignacionTurnoModel save(AsignacionTurnoModel model) {
         Usuario chofer = usuarioRepository.findById(model.getChoferId())
                 .orElseThrow(() -> new IllegalArgumentException("Chofer no encontrado."));

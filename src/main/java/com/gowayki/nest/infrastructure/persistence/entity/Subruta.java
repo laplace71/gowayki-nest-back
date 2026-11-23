@@ -48,6 +48,10 @@ public class Subruta {
     @Column(name = "nombre_retorno", length = 255)
     private String nombreRetorno;
 
+    /** Foto de la ruta almacenada en la BD (bytes WebP). */
+    @Column(name = "imagen")
+    private byte[] imagen;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean activa = true;

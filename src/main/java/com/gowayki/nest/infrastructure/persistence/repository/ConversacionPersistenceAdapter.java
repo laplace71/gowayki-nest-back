@@ -88,6 +88,13 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
     }
 
     @Override
+    public List<ConversacionModel> findByUsuarioIdIncluyendoPendientes(UUID usuarioId) {
+        return conversacionRepository.findByUsuarioIdIncluyendoPendientes(usuarioId).stream()
+                .map(conversacionMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public boolean existeParticipante(UUID conversacionId, UUID usuarioId) {
         return participanteRepository.existsByIdConversacionIdAndIdChoferId(conversacionId, usuarioId);
     }
@@ -185,8 +192,13 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
     @Override
     @Transactional
     public void eliminar(UUID conversacionId) {
-        // Participantes y mensajes se van solos: las dos FK son ON DELETE CASCADE.
-        conversacionRepository.deleteById(conversacionId);
+        // Borrado explícito: el cascade de Hibernate fallaba con referencias
+        // transitorias al flush. La BD también tiene ON DELETE CASCADE, así
+        // que estos delete son redundantes pero seguros.
+        // Borrado nativo: evita referencias transitorias de Hibernate al flush.
+        conversacionRepository.deleteParticipantesNativo(conversacionId);
+        conversacionRepository.deleteMensajesNativo(conversacionId);
+        conversacionRepository.deleteConversacionNativo(conversacionId);
     }
 
     @Override
@@ -243,6 +255,12 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
     @Transactional
     public Optional<ConversacionModel> bloquearParaActualizar(UUID conversacionId) {
         return conversacionRepository.findByIdForUpdate(conversacionId).map(conversacionMapper::toDomain);
+    }
+
+    @Override
+    @Transactional
+    public void cambiarCreador(UUID conversacionId, UUID nuevoCreadorId) {
+        conversacionRepository.cambiarCreador(conversacionId, nuevoCreadorId);
     }
 
     @Override

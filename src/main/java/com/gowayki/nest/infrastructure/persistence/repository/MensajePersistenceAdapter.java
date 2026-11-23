@@ -157,6 +157,12 @@ public class MensajePersistenceAdapter implements MensajeRepositoryPort {
 
     @Override
     @Transactional
+    public void deleteByConversacionId(UUID conversacionId) {
+        mensajeRepository.deleteByConversacionId(conversacionId);
+    }
+
+    @Override
+    @Transactional
     public void eliminarFisicamente(UUID mensajeId) {
         mensajeRepository.eliminarFisicamente(mensajeId);
     }

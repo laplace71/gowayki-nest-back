@@ -11,6 +11,7 @@ import com.gowayki.nest.infrastructure.persistence.entity.SubrutaGeometria;
 import com.gowayki.nest.infrastructure.persistence.repository.SpringDataPuntoControlRepository;
 import com.gowayki.nest.infrastructure.persistence.repository.SpringDataSubrutaGeometriaRepository;
 import com.gowayki.nest.infrastructure.persistence.repository.SpringDataSubrutaRepository;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,12 +40,14 @@ public class SubrutaController {
 
     @GetMapping("/catalogo")
     public ResponseEntity<CatalogoRutasDto> catalogo() {
-        List<Subruta> subrutas = subrutaRepository.findByActivaTrueOrderByLineaCodigoAscNombreAsc();
+        // Proyección sin el BLOB de imagen: el catálogo no usa las fotos.
+        List<com.gowayki.nest.infrastructure.persistence.repository.SubrutaCatalogoProjection> subrutas =
+                subrutaRepository.findCatalogo();
         Map<String, List<SubrutaDto>> porLinea = new LinkedHashMap<>();
         Map<String, String> nombreLinea = new LinkedHashMap<>();
         Map<String, String> colorLinea = new LinkedHashMap<>();
 
-        for (Subruta s : subrutas) {
+        for (com.gowayki.nest.infrastructure.persistence.repository.SubrutaCatalogoProjection s : subrutas) {
             String cod = s.getLineaCodigo() == null ? "" : s.getLineaCodigo();
             porLinea.computeIfAbsent(cod, k -> new ArrayList<>());
             nombreLinea.putIfAbsent(cod, s.getLineaNombre() != null ? s.getLineaNombre() : ("Línea " + cod));
@@ -102,6 +105,20 @@ public class SubrutaController {
         }
     }
 
+    /** Foto de la ruta guardada en la BD; la app la pide por routeId. */
+    @GetMapping("/{routeId}/imagen")
+    public ResponseEntity<byte[]> imagen(@PathVariable String routeId) {
+        byte[] bytes = resolve(routeId)
+                .map(r -> r.subruta.getImagen())
+                .orElse(null);
+        if (bytes == null || bytes.length == 0) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("image/webp"))
+                .body(bytes);
+    }
+
     private Optional<Resolved> resolve(String routeId) {
         if (routeId == null || routeId.isBlank()) return Optional.empty();
         Optional<Subruta> ida = subrutaRepository.findByRouteIdIda(routeId);
@@ -109,6 +126,22 @@ public class SubrutaController {
         Optional<Subruta> ret = subrutaRepository.findByRouteIdRetorno(routeId);
         if (ret.isPresent()) return Optional.of(new Resolved(ret.get(), "RETORNO"));
         return Optional.empty();
+    }
+
+    private SubrutaDto toDto(com.gowayki.nest.infrastructure.persistence.repository.SubrutaCatalogoProjection s) {
+        return SubrutaDto.builder()
+                .id(s.getId())
+                .lineaCodigo(s.getLineaCodigo())
+                .lineaNombre(s.getLineaNombre())
+                .codigo(s.getCodigo())
+                .nombre(s.getNombre())
+                .operador(s.getOperador())
+                .colorHex(s.getColorHex())
+                .routeIdIda(s.getRouteIdIda())
+                .routeIdRetorno(s.getRouteIdRetorno())
+                .nombreRetorno(s.getNombreRetorno())
+                .activa(s.getActiva())
+                .build();
     }
 
     private SubrutaDto toDto(Subruta s) {

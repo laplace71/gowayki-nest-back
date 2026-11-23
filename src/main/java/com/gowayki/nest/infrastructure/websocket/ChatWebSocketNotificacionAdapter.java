@@ -1,5 +1,6 @@
 package com.gowayki.nest.infrastructure.websocket;
 
+import com.gowayki.nest.application.dto.MensajeResponseDto;
 import com.gowayki.nest.domain.repository.ChatNotificacionPort;
 import org.springframework.stereotype.Component;
 
@@ -69,5 +70,11 @@ public class ChatWebSocketNotificacionAdapter implements ChatNotificacionPort {
                 "conversacionId", conversacionId,
                 "mensajeId", mensajeId
         ));
+    }
+
+    @Override
+    public void mensajeSistema(MensajeResponseDto mensaje, List<UUID> participantes) {
+        // Se envía como un mensaje normal: la app ya sabe pintar tipo SISTEMA.
+        handler.emitirEventoAUsuarios(participantes, mensaje);
     }
 }

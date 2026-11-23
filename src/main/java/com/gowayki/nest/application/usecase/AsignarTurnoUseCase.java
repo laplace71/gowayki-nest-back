@@ -42,6 +42,9 @@ public class AsignarTurnoUseCase {
 
         UsuarioModel chofer = usuarioRepositoryPort.findById(request.getChoferId())
                 .orElseThrow(() -> new IllegalArgumentException("El chofer no existe."));
+        if (!Boolean.TRUE.equals(chofer.getActivo())) {
+            throw new IllegalArgumentException("El chofer no está activo.");
+        }
 
         UnidadModel unidad = unidadRepositoryPort.findById(request.getUnidadId())
                 .orElseThrow(() -> new IllegalArgumentException("La unidad no existe."));

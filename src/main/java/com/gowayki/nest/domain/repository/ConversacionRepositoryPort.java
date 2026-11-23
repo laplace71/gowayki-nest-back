@@ -14,6 +14,9 @@ public interface ConversacionRepositoryPort {
 
     /** Igual que `findByUsuarioId` pero incluyendo las que el usuario ocultó. */
     List<ConversacionModel> findByUsuarioIdSinFiltroOcultas(UUID usuarioId);
+
+    /** Incluye conversaciones con purga pendiente, solo para borrado de cuenta. */
+    List<ConversacionModel> findByUsuarioIdIncluyendoPendientes(UUID usuarioId);
     boolean existeParticipante(UUID conversacionId, UUID usuarioId);
     Optional<ConversacionModel> findByTitulo(String titulo);
 
@@ -31,6 +34,9 @@ public interface ConversacionRepositoryPort {
 
     /** Cambia el rol de un participante dentro de la conversación (ADMIN o MIEMBRO). */
     void cambiarRol(UUID conversacionId, UUID usuarioId, String nuevoRol);
+
+    /** Transfiere la creación de la conversación a otro participante activo. */
+    void cambiarCreador(UUID conversacionId, UUID nuevoCreadorId);
 
     /** Lista los participantes de la conversación (id, nombre, rol). */
     java.util.List<com.gowayki.nest.domain.model.ParticipanteConversacion> listarParticipantes(UUID conversacionId);

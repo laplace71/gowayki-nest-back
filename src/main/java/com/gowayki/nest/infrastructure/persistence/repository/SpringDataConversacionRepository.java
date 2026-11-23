@@ -37,16 +37,45 @@ public interface SpringDataConversacionRepository extends JpaRepository<Conversa
             "ORDER BY c.createdAt DESC")
     List<Conversacion> findByUsuarioIdSinFiltroOcultas(@Param("usuarioId") UUID usuarioId);
 
+    /**
+     * Igual que la anterior pero INCLUYE grupos con purga pendiente: al borrar
+     * una cuenta hay que cancelar la solicitud si el creador se va, en vez de
+     * dejar que el programador borre el grupo para los demás.
+     */
+    @Query("SELECT c FROM Conversacion c JOIN ConversacionParticipante cp ON cp.conversacion.id = c.id " +
+            "WHERE cp.chofer.id = :usuarioId ORDER BY c.createdAt DESC")
+    List<Conversacion> findByUsuarioIdIncluyendoPendientes(@Param("usuarioId") UUID usuarioId);
+
     /** Marca de soft delete al pedir la eliminación definitiva. */
     @Modifying
     @Query("UPDATE Conversacion c SET c.eliminadoEn = :momento WHERE c.id = :conversacionId")
     void marcarEliminado(@Param("conversacionId") UUID conversacionId,
                          @Param("momento") OffsetDateTime momento);
 
+    @Modifying
+    @Query("DELETE FROM Mensaje m WHERE m.conversacion.id = :conversacionId")
+    void deleteMensajesByConversacionId(@Param("conversacionId") UUID conversacionId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "DELETE FROM conversacion_participante WHERE conversacion_id = :id", nativeQuery = true)
+    void deleteParticipantesNativo(@Param("id") UUID id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "DELETE FROM mensaje WHERE conversacion_id = :id", nativeQuery = true)
+    void deleteMensajesNativo(@Param("id") UUID id);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = "DELETE FROM conversacion WHERE id = :id", nativeQuery = true)
+    void deleteConversacionNativo(@Param("id") UUID id);
+
     /** Quita la marca si se cancela la eliminación dentro de las 72 horas. */
     @Modifying
     @Query("UPDATE Conversacion c SET c.eliminadoEn = NULL WHERE c.id = :conversacionId")
     void desmarcarEliminado(@Param("conversacionId") UUID conversacionId);
+
+    @Modifying
+    @Query(value = "UPDATE conversacion SET created_by = :nuevo WHERE id = :id", nativeQuery = true)
+    void cambiarCreador(@Param("id") UUID id, @Param("nuevo") UUID nuevo);
 
     java.util.Optional<Conversacion> findFirstByTitulo(String titulo);
 

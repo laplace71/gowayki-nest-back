@@ -44,6 +44,24 @@ public class Usuario {
     @Builder.Default
     private Boolean isOnline = false;
 
+    /** Borrado lógico: la fila se conserva para no romper el historial de chats. */
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean activo = true;
+
+    /** Se incrementa al eliminar la cuenta para revocar todos los JWT emitidos. */
+    @Column(name = "token_version", nullable = false)
+    @Builder.Default
+    private Integer tokenVersion = 0;
+
+    /** Marca de la última eliminación de cuenta (para ocultar historial al reactivar). */
+    @Column(name = "eliminado_en")
+    private OffsetDateTime eliminadoEn;
+
+    /** Marca de la reactivación tras una eliminación (corte de historial). */
+    @Column(name = "reactivado_en")
+    private OffsetDateTime reactivadoEn;
+
     @Column(name = "intentos_fallidos", nullable = false)
     @Builder.Default
     private Integer intentosFallidos = 0;

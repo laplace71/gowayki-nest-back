@@ -27,6 +27,12 @@ public class UsuarioModel {
     @Builder.Default
     private Boolean isOnline = false;
     @Builder.Default
+    private Boolean activo = true;
+    @Builder.Default
+    private Integer tokenVersion = 0;
+    private OffsetDateTime eliminadoEn;
+    private OffsetDateTime reactivadoEn;
+    @Builder.Default
     private Integer intentosFallidos = 0;
     private OffsetDateTime bloqueadoHasta;
     private OffsetDateTime createdAt;

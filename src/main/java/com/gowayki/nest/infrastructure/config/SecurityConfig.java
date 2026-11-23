@@ -45,6 +45,11 @@ public class SecurityConfig {
                         // El chat exige identidad desde el token: el id del usuario
                         // nunca se toma de la petición.
                         .requestMatchers("/api/chat/**").authenticated()
+                        // Las mutaciones de turnos requieren token y dueño/rol.
+                        // Los listados siguen públicos para la app y el panel.
+                        .requestMatchers(HttpMethod.PUT, "/api/turnos/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/turnos/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/turnos/**").authenticated()
                         // Resto de la API: sigue como antes por ahora. Cuando la app
                         // mande el token en todos lados, se cambia a authenticated().
                         .anyRequest().permitAll())

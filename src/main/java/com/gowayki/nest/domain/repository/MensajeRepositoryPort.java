@@ -42,6 +42,9 @@ public interface MensajeRepositoryPort {
     /** "Eliminar para todos": soft delete inmediato para todos los participantes. */
     void marcarEliminado(UUID mensajeId, OffsetDateTime momento);
 
+    /** Borrado físico de todos los mensajes de una conversación (antes de deleteById). */
+    void deleteByConversacionId(UUID conversacionId);
+
     /** Purga física luego del plazo de 72 horas. */
     void eliminarFisicamente(UUID mensajeId);
 
