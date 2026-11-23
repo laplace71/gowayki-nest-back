@@ -83,7 +83,7 @@ La base de datos cuenta con 11 tablas organizadas por módulos en `src/main/reso
 
 3. **Frecuencias y Puntos de Control (`V3__frecuencias_y_control.sql`):**
    * `punto_control`: Geocercas geográficas con radio de tolerancia para cada parada.
-   * `registro_cumplimiento`: Tiempos programados vs reales (`A_TIEMPO`, `ATRASADO`, `ADELANTADO`).
+   * `registro_cumplimiento`: Tiempos programados vs reales (`A_TIEMPO`, `ATRASADO`, `ADELANTADO`)
 
 4. **Seguridad y SOS (`V4__seguridad_y_sos.sql`):**
    * `alerta_incidencia`: Disparos del botón físico Bluetooth (BLE) y mapas de calor (Heatmaps).
