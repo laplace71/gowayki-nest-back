@@ -74,7 +74,7 @@ La base de datos cuenta con 11 tablas organizadas por módulos en `src/main/reso
 
 1. **Flota y GPS (`V01__flota_y_gps.sql`):**
    * `linea`: Rutas y corredores de combis.
-   * `unidad`: Vehículos físicos y números de padrón.
+   * `unidad`: Vehículos físicos y números de padrón
    * `unidad_posicion`: Telemetría viva con coordenadas PostGIS (`Point, 4326`) para calcular combis cercanas.
 
 2. **Usuarios y Turnos (`V2__usuarios_y_turnos.sql`):**
