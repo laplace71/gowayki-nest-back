@@ -28,6 +28,13 @@ public interface SpringDataUsuarioRepository extends JpaRepository<Usuario, UUID
     @Query("UPDATE Usuario u SET u.intentosFallidos = 0, u.bloqueadoHasta = null, u.isOnline = true WHERE u.id = :id")
     void marcarLoginExitoso(@Param("id") UUID id);
 
+    @Query(value = "SELECT u.id, s.codigo, s.nombre FROM usuario u " +
+            "JOIN usuario_linea ul ON ul.usuario_id = u.id " +
+            "JOIN subruta s ON s.id = ul.subruta_id " +
+            "WHERE u.rol = 'JEFE_RUTA' AND u.activo = true AND ul.subruta_id IS NOT NULL",
+            nativeQuery = true)
+    List<Object[]> findJefesConSubruta();
+
     @Query("SELECT u.activo FROM Usuario u WHERE u.id = :id")
     Boolean estaActivo(@Param("id") UUID id);
 

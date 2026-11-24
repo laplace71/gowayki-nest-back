@@ -3,9 +3,11 @@ package com.gowayki.nest.chat;
 import com.gowayki.nest.application.dto.ConversacionResponseDto;
 import com.gowayki.nest.application.dto.CrearConversacionRequestDto;
 import com.gowayki.nest.application.usecase.CrearConversacionUseCase;
+import com.gowayki.nest.application.usecase.MensajeSistemaService;
 import com.gowayki.nest.domain.exception.ConflictoException;
 import com.gowayki.nest.domain.model.ConversacionModel;
 import com.gowayki.nest.support.FakeArchivoPendienteRepository;
+import com.gowayki.nest.support.FakeChatNotificacion;
 import com.gowayki.nest.support.FakeConversacionRepository;
 import com.gowayki.nest.support.FakeEliminacionGrupoRepository;
 import com.gowayki.nest.support.FakeMensajeRepository;
@@ -35,9 +37,11 @@ class CrearConversacionUseCaseTest {
         conversaciones = new FakeConversacionRepository();
         eliminaciones = new FakeEliminacionGrupoRepository();
         usuarios = new FakeUsuarioRepository();
+        FakeMensajeRepository mensajes = new FakeMensajeRepository();
         crear = new CrearConversacionUseCase(
-                conversaciones, usuarios, new FakeMensajeRepository(),
-                new FakeArchivoPendienteRepository(), eliminaciones);
+                conversaciones, usuarios, mensajes,
+                new FakeArchivoPendienteRepository(), eliminaciones,
+                new MensajeSistemaService(mensajes, usuarios, conversaciones, new FakeChatNotificacion()));
 
         ana = usuarios.agregar("Ana");
     }

@@ -81,6 +81,15 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
     }
 
     @Override
+    public List<ConversacionModel> findAllGruposActivos() {
+        return conversacionRepository.findAll().stream()
+                .filter(c -> Boolean.TRUE.equals(c.getEsGrupo()))
+                .filter(c -> c.getEliminadoEn() == null)
+                .map(conversacionMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<ConversacionModel> findByUsuarioIdSinFiltroOcultas(UUID usuarioId) {
         return conversacionRepository.findByUsuarioIdSinFiltroOcultas(usuarioId).stream()
                 .map(conversacionMapper::toDomain)
@@ -118,22 +127,39 @@ public class ConversacionPersistenceAdapter implements ConversacionRepositoryPor
         if (conversacion == null) {
             return;
         }
-        if (participanteRepository.existsByIdConversacionIdAndIdChoferId(conversacionId, usuarioId)) {
+        Usuario user = usuarioRepository.findById(usuarioId).orElse(null);
+        if (user == null) {
             return;
         }
-        Usuario user = usuarioRepository.findById(usuarioId).orElse(null);
-        if (user != null) {
-            ConversacionParticipanteId cpId = new ConversacionParticipanteId(conversacionId, usuarioId);
-            ConversacionParticipante cp = ConversacionParticipante.builder()
-                    .id(cpId)
-                    .conversacion(conversacion)
-                    .chofer(user)
-                    .rol("MIEMBRO")
-                    .build();
-            participanteRepository.save(cp);
-            // Si había ocultado este grupo, al volver a participar debe verlo.
-            limpiarEstadoUsuario(conversacionId, usuarioId);
+        boolean esCreador = conversacion.getCreatedBy() != null
+                && user.getId().equals(conversacion.getCreatedBy().getId());
+
+        if (participanteRepository.existsByIdConversacionIdAndIdChoferId(conversacionId, usuarioId)) {
+            // Quien creó el grupo SIEMPRE debe quedar como ADMIN, también cuando
+            // reingresa a un grupo de ruta que ya existía. Antes se quedaba como
+            // MIEMBRO y no podía gestionar sus propios chats.
+            if (esCreador) {
+                participanteRepository.findById(new ConversacionParticipanteId(conversacionId, usuarioId))
+                        .ifPresent(p -> {
+                            if (!"ADMIN".equals(p.getRol())) {
+                                p.setRol("ADMIN");
+                                participanteRepository.save(p);
+                            }
+                        });
+            }
+            return;
         }
+
+        ConversacionParticipanteId cpId = new ConversacionParticipanteId(conversacionId, usuarioId);
+        ConversacionParticipante cp = ConversacionParticipante.builder()
+                .id(cpId)
+                .conversacion(conversacion)
+                .chofer(user)
+                .rol(esCreador ? "ADMIN" : "MIEMBRO")
+                .build();
+        participanteRepository.save(cp);
+        // Si había ocultado este grupo, al volver a participar debe verlo.
+        limpiarEstadoUsuario(conversacionId, usuarioId);
     }
 
     @Override

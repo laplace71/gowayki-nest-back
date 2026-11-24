@@ -29,7 +29,7 @@ class JwtServiceTest {
         JwtService servicio = new JwtService(SECRETO, 1);
         UUID usuarioId = UUID.randomUUID();
 
-        String token = servicio.generar(usuarioId, "CHOFER");
+        String token = servicio.generar(usuarioId, "CHOFER", 0);
         Optional<JwtService.IdentidadToken> identidad = servicio.validar(token);
 
         assertTrue(identidad.isPresent());
@@ -40,7 +40,7 @@ class JwtServiceTest {
     @Test
     void unTokenAlteradoNoVale() {
         JwtService servicio = new JwtService(SECRETO, 1);
-        String token = servicio.generar(UUID.randomUUID(), "CHOFER");
+        String token = servicio.generar(UUID.randomUUID(), "CHOFER", 0);
         String alterado = token.substring(0, token.length() - 2) + "aa";
 
         assertTrue(servicio.validar(alterado).isEmpty());
@@ -51,7 +51,7 @@ class JwtServiceTest {
         JwtService emisor = new JwtService(SECRETO, 1);
         JwtService otro = new JwtService("otro-secreto-distinto-con-mas-de-32-bytes!!", 1);
 
-        String token = emisor.generar(UUID.randomUUID(), "ADMIN");
+        String token = emisor.generar(UUID.randomUUID(), "ADMIN", 0);
         assertTrue(otro.validar(token).isEmpty());
     }
 

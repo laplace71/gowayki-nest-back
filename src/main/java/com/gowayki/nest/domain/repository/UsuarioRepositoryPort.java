@@ -18,6 +18,9 @@ public interface UsuarioRepositoryPort {
 
     List<UsuarioModel> findAllActivos();
 
+    /** Jefes de ruta activos con la subruta asignada desde el panel. */
+    List<com.gowayki.nest.domain.model.JefeSubrutaModel> findJefesConSubruta();
+
     /** Actualizaciones parciales: no sobrescriben el estado de la cuenta. */
     void registrarIntentoFallido(UUID id, int intentos, java.time.OffsetDateTime bloqueadoHasta);
 

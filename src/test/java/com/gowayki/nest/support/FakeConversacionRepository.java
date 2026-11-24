@@ -81,10 +81,25 @@ public class FakeConversacionRepository implements ConversacionRepositoryPort {
     }
 
     @Override
+    public List<ConversacionModel> findAllGruposActivos() {
+        return conversaciones.values().stream()
+                .filter(c -> Boolean.TRUE.equals(c.getEsGrupo()))
+                .filter(c -> !marcadasEliminadas.containsKey(c.getId()))
+                .toList();
+    }
+
+    @Override
     public List<ConversacionModel> findByUsuarioIdSinFiltroOcultas(UUID usuarioId) {
         return conversaciones.values().stream()
                 .filter(c -> participantesPorConversacion.getOrDefault(c.getId(), Map.of()).containsKey(usuarioId))
                 .filter(c -> !marcadasEliminadas.containsKey(c.getId()))
+                .toList();
+    }
+
+    @Override
+    public List<ConversacionModel> findByUsuarioIdIncluyendoPendientes(UUID usuarioId) {
+        return conversaciones.values().stream()
+                .filter(c -> participantesPorConversacion.getOrDefault(c.getId(), Map.of()).containsKey(usuarioId))
                 .toList();
     }
 
@@ -110,9 +125,15 @@ public class FakeConversacionRepository implements ConversacionRepositoryPort {
     @Override
     public void agregarParticipante(UUID conversacionId, UUID usuarioId) {
         llamadas.add("agregarParticipante:" + usuarioId);
-        participantesPorConversacion
-                .computeIfAbsent(conversacionId, k -> new LinkedHashMap<>())
-                .putIfAbsent(usuarioId, "MIEMBRO");
+        ConversacionModel c = conversaciones.get(conversacionId);
+        boolean esCreador = c != null && c.getCreatedBy() != null && c.getCreatedBy().equals(usuarioId);
+        Map<UUID, String> miembros = participantesPorConversacion
+                .computeIfAbsent(conversacionId, k -> new LinkedHashMap<>());
+        if (esCreador) {
+            miembros.put(usuarioId, "ADMIN");
+        } else {
+            miembros.putIfAbsent(usuarioId, "MIEMBRO");
+        }
     }
 
     @Override
@@ -143,6 +164,15 @@ public class FakeConversacionRepository implements ConversacionRepositoryPort {
     public void cambiarRol(UUID conversacionId, UUID usuarioId, String nuevoRol) {
         llamadas.add("cambiarRol:" + usuarioId + ":" + nuevoRol);
         participantesPorConversacion.getOrDefault(conversacionId, Map.of()).put(usuarioId, nuevoRol);
+    }
+
+    @Override
+    public void cambiarCreador(UUID conversacionId, UUID nuevoCreadorId) {
+        llamadas.add("cambiarCreador:" + conversacionId + ":" + nuevoCreadorId);
+        ConversacionModel c = conversaciones.get(conversacionId);
+        if (c != null) {
+            c.setCreatedBy(nuevoCreadorId);
+        }
     }
 
     @Override

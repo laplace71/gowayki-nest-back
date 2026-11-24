@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -56,9 +57,6 @@ public class CrearConversacionUseCase {
         boolean esGrupo = Boolean.TRUE.equals(request.getEsGrupo());
 
         // Seguridad: solo el tipo estructurado decide si es un grupo de ruta.
-        // Ni el título ni la sola presencia de claveRuta bastan: cualquier
-        // usuario podría crear un grupo con un título parecido y, si lo
-        // aceptáramos, al entrar a su ruta se lo sacaría de ese grupo.
         String claveRuta = request.getClaveRuta() != null ? request.getClaveRuta().trim() : null;
         boolean tipoRutaExplicito = "GRUPO_RUTA".equals(request.getTipoConversacion());
         boolean esGrupoRuta = esGrupo && tipoRutaExplicito;
@@ -70,19 +68,32 @@ public class CrearConversacionUseCase {
             throw new IllegalArgumentException(
                     "Para un grupo de ruta hace falta la subruta (claveRuta).");
         }
+        if (esGrupoRuta && !claveRutaValida(claveRuta)) {
+            throw new IllegalArgumentException(
+                    "claveRuta no válida para un grupo de ruta: " + claveRuta);
+        }
 
         String tipoConversacion = esGrupoRuta ? "GRUPO_RUTA" : (esGrupo ? "GRUPO" : "PRIVADA");
 
         if (esGrupoRuta) {
-            java.util.Optional<ConversacionModel> existenteOpt =
+            Set<UUID> entrando = usuariosEntrando(request);
+            UUID solicitante = request.getCreatedBy();
+
+            // Unirse uno mismo al grupo de su ruta es el flujo normal de la app.
+            // Se delega al método público para que el cambio de turno use EXACTAMENTE
+            // la misma lógica y no haya dos caminos que se pierdan la limpieza.
+            boolean soloYo = entrando.size() == 1 && entrando.contains(solicitante);
+            if (soloYo) {
+                return asegurarGrupoRuta(solicitante, claveRuta, titulo);
+            }
+
+            Optional<ConversacionModel> existenteOpt =
                     conversacionRepositoryPort.findByClaveRuta(claveRuta)
                             .or(() -> titulo == null
-                                    ? java.util.Optional.empty()
+                                    ? Optional.empty()
                                     : conversacionRepositoryPort.findByTitulo(titulo));
             if (existenteOpt.isPresent()) {
                 ConversacionModel existente = existenteOpt.get();
-                // Un título igual al de un chat privado no da acceso: solo se
-                // reutiliza un grupo de ruta real, nunca otra conversación.
                 if (!Boolean.TRUE.equals(existente.getEsGrupo())
                         || !"GRUPO_RUTA".equals(existente.getTipoConversacion())) {
                     throw new AccesoDenegadoException(
@@ -92,18 +103,12 @@ public class CrearConversacionUseCase {
                     throw new ConflictoException(
                             "Este grupo está pendiente de eliminación definitiva; ya no admite nuevos participantes.");
                 }
-                Set<UUID> entrando = usuariosEntrando(request);
 
-                // Unirse uno mismo al grupo sigue siendo libre (es lo que hace
-                // la app al entrar a una subruta). Invitar a OTROS conductores
-                // es una acción de administración: creador o cualquier ADMIN,
-                // incluidos los que heredaron el rol.
-                UUID solicitante = request.getCreatedBy();
-                boolean soloYo = entrando.size() == 1 && entrando.contains(solicitante);
+                // Invitar a OTROS conductores es administración: creador o cualquier ADMIN.
                 boolean esCreador = existente.getCreatedBy() != null
                         && existente.getCreatedBy().equals(solicitante);
                 boolean esAdmin = conversacionRepositoryPort.esAdministrador(existente.getId(), solicitante);
-                if (!soloYo && !esCreador && !esAdmin) {
+                if (!esCreador && !esAdmin) {
                     throw new AccesoDenegadoException("Solo un administrador puede añadir miembros.");
                 }
 
@@ -118,19 +123,7 @@ public class CrearConversacionUseCase {
                 for (UUID pId : entrando) {
                     salirDeOtrosGruposRuta(pId, existente.getId());
                 }
-                int count = conversacionRepositoryPort.contarParticipantes(existente.getId());
-                return ConversacionResponseDto.builder()
-                        .id(existente.getId())
-                        .titulo(existente.getTitulo())
-                        .esGrupo(existente.getEsGrupo())
-                        .tipoConversacion(existente.getTipoConversacion())
-                        .claveRuta(existente.getClaveRuta())
-                        .createdBy(existente.getCreatedBy())
-                        .createdAt(existente.getCreatedAt())
-                        .totalMensajes(0)
-                        .ultimoMensaje(null)
-                        .totalParticipantes(count)
-                        .build();
+                return dtoDesde(existeDeConConteo(existente));
             }
         }
 
@@ -159,20 +152,113 @@ public class CrearConversacionUseCase {
             }
         }
 
-        int count = conversacionRepositoryPort.contarParticipantes(guardado.getId());
+        return dtoDesde(existeDeConConteo(guardado));
+    }
 
+    /**
+     * Asegura que un conductor pertenezca AL grupo de ruta de su subruta y a
+     * ningún otro. Es el único punto por el que pasan:
+     *  - el join que hace la app al entrar a una subruta, y
+     *  - el cambio/subida de turno en el backend.
+     *
+     * Así la membresía deja de depender de que el cliente recuerde llamar.
+     */
+    @Transactional
+    public ConversacionResponseDto asegurarGrupoRuta(UUID usuarioId, String claveRuta, String titulo) {
+        if (usuarioId == null) {
+            throw new IllegalArgumentException("El id del conductor es obligatorio.");
+        }
+        String clave = claveRuta != null ? claveRuta.trim() : null;
+        if (clave == null || clave.isBlank() || !claveRutaValida(clave)) {
+            throw new IllegalArgumentException("claveRuta no válida para un grupo de ruta: " + claveRuta);
+        }
+        if (usuarioRepositoryPort.findById(usuarioId).isEmpty()) {
+            throw new IllegalArgumentException("El conductor no existe.");
+        }
+
+        // SOLO la clave identifica al grupo de ruta. Buscar también por título
+        // podía reutilizar el grupo de otra subruta cuando el turno cambiaba de
+        // código pero traía el nombre viejo: exactamente el bug de aislamiento.
+        Optional<ConversacionModel> porTitulo = titulo == null
+                ? Optional.empty()
+                : conversacionRepositoryPort.findByTitulo(titulo.trim());
+        if (porTitulo.isPresent()
+                && (!Boolean.TRUE.equals(porTitulo.get().getEsGrupo())
+                    || !"GRUPO_RUTA".equals(porTitulo.get().getTipoConversacion()))) {
+            throw new AccesoDenegadoException(
+                    "Ese título pertenece a una conversación que no es un grupo de ruta.");
+        }
+
+        Optional<ConversacionModel> existenteOpt = conversacionRepositoryPort.findByClaveRuta(clave);
+
+        if (existenteOpt.isPresent()) {
+            ConversacionModel existente = existenteOpt.get();
+            if (!Boolean.TRUE.equals(existente.getEsGrupo())
+                    || !"GRUPO_RUTA".equals(existente.getTipoConversacion())) {
+                throw new AccesoDenegadoException(
+                        "Ese título pertenece a una conversación que no es un grupo de ruta.");
+            }
+            if (eliminacionGrupoPort.buscarPendiente(existente.getId()).isPresent()) {
+                throw new ConflictoException(
+                        "Este grupo está pendiente de eliminación definitiva; ya no admite nuevos participantes.");
+            }
+            boolean yaEraParticipante = conversacionRepositoryPort
+                    .existeParticipante(existente.getId(), usuarioId);
+            conversacionRepositoryPort.agregarParticipante(existente.getId(), usuarioId);
+            if (!yaEraParticipante) {
+                mensajeSistemaService.avisar(existente.getId(), usuarioId, "se unió al grupo");
+            }
+            salirDeOtrosGruposRuta(usuarioId, existente.getId());
+            return dtoDesde(existeDeConConteo(existente));
+        }
+
+        String tituloFinal = titulo != null && !titulo.isBlank()
+                ? titulo.trim()
+                : "GRUPO · " + clave;
+        ConversacionModel model = ConversacionModel.builder()
+                .titulo(tituloFinal)
+                .esGrupo(true)
+                .tipoConversacion("GRUPO_RUTA")
+                .claveRuta(clave)
+                .createdBy(usuarioId)
+                .createdAt(OffsetDateTime.now())
+                .build();
+        ConversacionModel guardado = conversacionRepositoryPort.save(model, List.of(usuarioId));
+        salirDeOtrosGruposRuta(usuarioId, guardado.getId());
+        return dtoDesde(existeDeConConteo(guardado));
+    }
+
+    /** Recarga la conversación para que el DTO lleve el conteo de participantes actual. */
+    private ConversacionModel existeDeConConteo(ConversacionModel modelo) {
+        return conversacionRepositoryPort.findById(modelo.getId()).orElse(modelo);
+    }
+
+    private ConversacionResponseDto dtoDesde(ConversacionModel c) {
+        int count = conversacionRepositoryPort.contarParticipantes(c.getId());
         return ConversacionResponseDto.builder()
-                .id(guardado.getId())
-                .titulo(guardado.getTitulo())
-                .esGrupo(guardado.getEsGrupo())
-                .tipoConversacion(guardado.getTipoConversacion())
-                .claveRuta(guardado.getClaveRuta())
-                .createdBy(guardado.getCreatedBy())
-                .createdAt(guardado.getCreatedAt())
+                .id(c.getId())
+                .titulo(c.getTitulo())
+                .esGrupo(c.getEsGrupo())
+                .tipoConversacion(c.getTipoConversacion())
+                .claveRuta(c.getClaveRuta())
+                .createdBy(c.getCreatedBy())
+                .createdAt(c.getCreatedAt())
                 .totalMensajes(0)
                 .ultimoMensaje(null)
                 .totalParticipantes(count)
                 .build();
+    }
+
+    /**
+     * La clave de un grupo de ruta identifica una subruta concreta (SB-…),
+     * nunca el tipo de conversación ni un código de línea.
+     */
+    private static boolean claveRutaValida(String claveRuta) {
+        if (claveRuta == null || claveRuta.isBlank()) return false;
+        if ("GRUPO_RUTA".equalsIgnoreCase(claveRuta)) return false;
+        if (claveRuta.matches("(?i)(l[ií]nea\\s+|canal\\s+de\\s+(l[ií]nea\\s+)?)?c\\d+")) return false;
+        if (claveRuta.regionMatches(true, 0, "GRUPO ", 0, 6)) return false;
+        return true;
     }
 
     /** "GRUPO · Subruta X" -> "Subruta X". Solo para peticiones antiguas ya marcadas como ruta. */
@@ -182,10 +268,6 @@ public class CrearConversacionUseCase {
         return titulo.startsWith(prefijo) ? titulo.substring(prefijo.length()).trim() : null;
     }
 
-    /**
-     * ¿Es un grupo de subruta? Solo el tipo estructurado. El título es texto
-     * libre y no puede decidir la membresía de un chofer.
-     */
     private static boolean esGrupoDeRuta(ConversacionModel conversacion) {
         return "GRUPO_RUTA".equals(conversacion.getTipoConversacion());
     }
@@ -204,7 +286,6 @@ public class CrearConversacionUseCase {
     /**
      * Al entrar a un grupo de ruta (subruta), el usuario deja de pertenecer a los
      * demás grupos de ruta: así cada subruta solo tiene a quienes están en ella.
-     * Si algún grupo queda vacío, se elimina junto con sus mensajes y audios.
      */
     private void salirDeOtrosGruposRuta(UUID usuarioId, UUID grupoActualId) {
         if (usuarioId == null) return;
@@ -217,9 +298,6 @@ public class CrearConversacionUseCase {
             } catch (IllegalArgumentException ignored) {
                 // Ya no era participante; nada que hacer.
             }
-            // Mismo ciclo de vida que "salir del grupo": si quien se va era el
-            // único administrador, el grupo no puede quedarse sin nadie que
-            // pueda administrarlo.
             conversacionRepositoryPort.limpiarEstadoUsuario(c.getId(), usuarioId);
             if (Boolean.TRUE.equals(c.getEsGrupo())
                     || "GRUPO_RUTA".equals(c.getTipoConversacion())) {
@@ -232,10 +310,8 @@ public class CrearConversacionUseCase {
                         .filter(Objects::nonNull)
                         .toList();
                 conversacionRepositoryPort.eliminar(c.getId());
-                // Los archivos se borran después del commit, no aquí.
                 audios.forEach(ruta -> archivoPendienteBorradoPort.encolar(ruta, "GRUPO_RUTA_VACIO"));
             }
         }
     }
 }
-

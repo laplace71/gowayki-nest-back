@@ -72,6 +72,17 @@ public class UsuarioPersistenceAdapter implements UsuarioRepositoryPort {
     }
 
     @Override
+    public List<com.gowayki.nest.domain.model.JefeSubrutaModel> findJefesConSubruta() {
+        return springDataUsuarioRepository.findJefesConSubruta().stream()
+                .map(fila -> com.gowayki.nest.domain.model.JefeSubrutaModel.builder()
+                        .choferId((UUID) fila[0])
+                        .subrutaCodigo(fila[1] == null ? null : fila[1].toString())
+                        .subrutaNombre(fila[2] == null ? null : fila[2].toString())
+                        .build())
+                .toList();
+    }
+
+    @Override
     public void registrarIntentoFallido(UUID id, int intentos, java.time.OffsetDateTime bloqueadoHasta) {
         springDataUsuarioRepository.registrarIntentoFallido(id, intentos, bloqueadoHasta);
     }

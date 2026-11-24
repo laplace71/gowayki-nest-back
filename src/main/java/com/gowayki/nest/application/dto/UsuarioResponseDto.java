@@ -22,5 +22,8 @@ public class UsuarioResponseDto {
     private String fotoUrl;
     private String rol;
     private Boolean isOnline;
+    /** Subruta asignada desde el panel (solo jefes de ruta). */
+    private String subrutaId;
+    private String subrutaNombre;
 }
 

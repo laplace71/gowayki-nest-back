@@ -12,6 +12,9 @@ public interface ConversacionRepositoryPort {
     Optional<ConversacionModel> findById(UUID id);
     List<ConversacionModel> findByUsuarioId(UUID usuarioId);
 
+    /** Todos los grupos vivos, para depuración administrativa. */
+    List<ConversacionModel> findAllGruposActivos();
+
     /** Igual que `findByUsuarioId` pero incluyendo las que el usuario ocultó. */
     List<ConversacionModel> findByUsuarioIdSinFiltroOcultas(UUID usuarioId);
 

@@ -1,5 +1,6 @@
 package com.gowayki.nest.support;
 
+import com.gowayki.nest.application.dto.MensajeResponseDto;
 import com.gowayki.nest.domain.repository.ChatNotificacionPort;
 
 import java.time.OffsetDateTime;
@@ -51,6 +52,11 @@ public class FakeChatNotificacion implements ChatNotificacionPort {
     @Override
     public void mensajeEliminado(UUID conversacionId, UUID mensajeId, List<UUID> participantes) {
         mensajesEliminados.add(mensajeId);
+        destinatarios.add(List.copyOf(participantes));
+    }
+
+    @Override
+    public void mensajeSistema(MensajeResponseDto mensaje, List<UUID> participantes) {
         destinatarios.add(List.copyOf(participantes));
     }
 }

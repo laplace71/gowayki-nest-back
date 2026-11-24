@@ -149,4 +149,10 @@ public class FakeMensajeRepository implements MensajeRepositoryPort {
         llamadas.add("eliminarFisicamente");
         mensajes.removeIf(m -> mensajeId.equals(m.getId()));
     }
+
+    @Override
+    public void deleteByConversacionId(UUID conversacionId) {
+        llamadas.add("deleteByConversacionId");
+        mensajes.removeIf(m -> conversacionId.equals(m.getConversacionId()));
+    }
 }
