@@ -4,6 +4,7 @@ import com.gowayki.nest.application.dto.CambioSubrutaRequestDto;
 import com.gowayki.nest.application.dto.RegistroSolicitudRequestDto;
 import com.gowayki.nest.domain.exception.AccesoDenegadoException;
 import com.gowayki.nest.domain.model.SolicitudRegistroModel;
+import com.gowayki.nest.domain.model.UsuarioModel;
 import com.gowayki.nest.domain.repository.SolicitudRegistroPort;
 import com.gowayki.nest.domain.repository.UsuarioRepositoryPort;
 import com.gowayki.nest.infrastructure.persistence.entity.Subruta;
@@ -49,14 +50,20 @@ public class CrearSolicitudesUseCase {
 
         Subruta subruta = subrutaRepository.findById(request.getSubrutaId())
                 .orElseThrow(() -> new IllegalArgumentException("La subruta no existe."));
-        if (usuarioRepositoryPort.existsByDni(dni)) {
+        // Una cuenta dada de baja conserva su fila para no destruir el
+        // historial. Si ese DNI está inactivo, la solicitud se marca con su id
+        // para que el panel la reactive al aprobar, en vez de crear otra.
+        var existenteOpt = usuarioRepositoryPort.findByDni(dni);
+        if (existenteOpt.isPresent() && Boolean.TRUE.equals(existenteOpt.get().getActivo())) {
             throw new IllegalArgumentException("Ya existe una cuenta con ese DNI.");
         }
+        UUID usuarioReactivar = existenteOpt.map(UsuarioModel::getId).orElse(null);
 
         OffsetDateTime ahora = OffsetDateTime.now();
         return solicitudPort.guardar(SolicitudRegistroModel.builder()
                 .tipo("CHOFER")
                 .dni(dni)
+                .usuarioId(usuarioReactivar)
                 .nombreCompleto(nombre)
                 .telefono(telefono)
                 .email(request.getEmail() == null ? null : request.getEmail().trim().toLowerCase())
