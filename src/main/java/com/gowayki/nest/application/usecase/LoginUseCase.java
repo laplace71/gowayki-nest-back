@@ -93,7 +93,7 @@ public class LoginUseCase {
     }
 
     private UsuarioResponseDto toResponseDto(UsuarioModel usuario) {
-        var subruta = usuarioRepository.findJefesConSubruta().stream()
+        var subruta = usuarioRepository.findUsuariosConSubruta().stream()
                 .filter(j -> usuario.getId().equals(j.getChoferId()))
                 .findFirst()
                 .orElse(null);

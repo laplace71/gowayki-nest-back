@@ -88,6 +88,19 @@ public class FakeUsuarioRepository implements UsuarioRepositoryPort {
     }
 
     @Override
+    public List<com.gowayki.nest.domain.model.JefeSubrutaModel> findUsuariosConSubruta() {
+        return usuarios.values().stream()
+                .filter(u -> !Boolean.FALSE.equals(u.getActivo()))
+                .filter(u -> u.getSubrutaCodigo() != null && !u.getSubrutaCodigo().isBlank())
+                .map(u -> com.gowayki.nest.domain.model.JefeSubrutaModel.builder()
+                        .choferId(u.getId())
+                        .subrutaCodigo(u.getSubrutaCodigo())
+                        .subrutaNombre(u.getSubrutaNombre())
+                        .build())
+                .toList();
+    }
+
+    @Override
     public List<UsuarioModel> findAllActivos() {
         return usuarios.values().stream()
                 .filter(u -> !Boolean.FALSE.equals(u.getActivo()))

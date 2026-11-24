@@ -35,6 +35,15 @@ public interface SpringDataUsuarioRepository extends JpaRepository<Usuario, UUID
             nativeQuery = true)
     List<Object[]> findJefesConSubruta();
 
+    /** Subruta asignada a CUALQUIER usuario activo (jefe o chofer). */
+    @Query(value = "SELECT u.id, s.codigo, s.nombre, s.linea_id, l.nombre FROM usuario u " +
+            "JOIN usuario_linea ul ON ul.usuario_id = u.id " +
+            "JOIN subruta s ON s.id = ul.subruta_id " +
+            "JOIN linea l ON l.id = s.linea_id " +
+            "WHERE u.activo = true AND ul.subruta_id IS NOT NULL",
+            nativeQuery = true)
+    List<Object[]> findUsuariosConSubruta();
+
     @Query("SELECT u.activo FROM Usuario u WHERE u.id = :id")
     Boolean estaActivo(@Param("id") UUID id);
 
