@@ -52,7 +52,29 @@ public class SolicitarEliminacionGrupoUseCase {
         }
 
         verificarPermiso(conversacion, solicitanteId);
+        return marcarParaEliminacion(conversacion, solicitanteId);
+    }
 
+    /**
+     * Variante para depuración administrativa. La llama un ADMIN autenticado;
+     * no exige ser creador ni miembro del grupo, pero aplica EXACTAMENTE el
+     * mismo soft delete de 72 horas.
+     */
+    @Transactional
+    public EliminacionGrupoModel ejecutarComoAdministrador(UUID conversacionId, UUID administradorId) {
+        if (administradorId == null) {
+            throw new NoAutenticadoException("Se requiere un administrador autenticado.");
+        }
+        ConversacionModel conversacion = conversacionRepositoryPort.bloquearParaActualizar(conversacionId)
+                .orElseThrow(() -> new IllegalArgumentException("La conversación no existe."));
+        if (!Boolean.TRUE.equals(conversacion.getEsGrupo())) {
+            throw new IllegalArgumentException("Solo se pueden eliminar grupos.");
+        }
+        return marcarParaEliminacion(conversacion, administradorId);
+    }
+
+    private EliminacionGrupoModel marcarParaEliminacion(ConversacionModel conversacion, UUID solicitanteId) {
+        UUID conversacionId = conversacion.getId();
         // Idempotente: si ya hay una solicitud viva, se devuelve esa.
         EliminacionGrupoModel solicitud = eliminacionGrupoPort.buscarPendiente(conversacionId)
                 .orElseGet(() -> {
