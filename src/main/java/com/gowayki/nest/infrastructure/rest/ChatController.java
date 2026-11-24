@@ -29,6 +29,8 @@ import java.util.UUID;
 public class ChatController {
 
     private final CrearConversacionUseCase crearConversacionUseCase;
+    private final CrearSolicitudesUseCase crearSolicitudesUseCase;
+    private final ValidarSubrutaChoferUseCase validarSubrutaChoferUseCase;
     private final EnviarMensajeTextoUseCase enviarMensajeTextoUseCase;
     private final EnviarMensajeAudioUseCase enviarMensajeAudioUseCase;
     private final ObtenerMensajesUseCase obtenerMensajesUseCase;
@@ -50,6 +52,8 @@ public class ChatController {
     private final ChatWebSocketHandler chatWebSocketHandler;
 
     public ChatController(CrearConversacionUseCase crearConversacionUseCase,
+                          CrearSolicitudesUseCase crearSolicitudesUseCase,
+                          ValidarSubrutaChoferUseCase validarSubrutaChoferUseCase,
                           EnviarMensajeTextoUseCase enviarMensajeTextoUseCase,
                           EnviarMensajeAudioUseCase enviarMensajeAudioUseCase,
                           ObtenerMensajesUseCase obtenerMensajesUseCase,
@@ -70,6 +74,8 @@ public class ChatController {
                           ChatNotificacionPort chatNotificacionPort,
                           ChatWebSocketHandler chatWebSocketHandler) {
         this.crearConversacionUseCase = crearConversacionUseCase;
+        this.crearSolicitudesUseCase = crearSolicitudesUseCase;
+        this.validarSubrutaChoferUseCase = validarSubrutaChoferUseCase;
         this.enviarMensajeTextoUseCase = enviarMensajeTextoUseCase;
         this.enviarMensajeAudioUseCase = enviarMensajeAudioUseCase;
         this.obtenerMensajesUseCase = obtenerMensajesUseCase;
@@ -95,10 +101,40 @@ public class ChatController {
     public ResponseEntity<ConversacionResponseDto> crearConversacion(@RequestBody CrearConversacionRequestDto request,
                                                                      Authentication autenticacion) {
         // El creador es siempre quien llama: el campo del cliente se ignora.
-        request.setCreatedBy(usuario(autenticacion));
+        UUID choferId = usuario(autenticacion);
+        request.setCreatedBy(choferId);
+        // Un GRUPO_RUTA no se decide por el texto que envíe el cliente: debe
+        // coincidir con la subruta de su turno activo.
+        if ("GRUPO_RUTA".equals(request.getTipoConversacion())) {
+            validarSubrutaChoferUseCase.ejecutar(choferId, request.getClaveRuta());
+        }
         ConversacionResponseDto response = crearConversacionUseCase.ejecutar(request);
         chatWebSocketHandler.emitirMensaje(response);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /** El chofer pide cambio de subruta; el jefe de destino aprueba en el panel. */
+    @PostMapping("/solicitudes/cambio-subruta")
+    public ResponseEntity<?> solicitarCambioSubruta(@RequestBody CambioSubrutaRequestDto request,
+                                                    Authentication autenticacion) {
+        try {
+            if (autenticacion == null || autenticacion.getPrincipal() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("exito", false, "mensaje", "Se requiere un token válido."));
+            }
+            var solicitud = crearSolicitudesUseCase.cambioSubruta(
+                    UUID.fromString(autenticacion.getPrincipal().toString()), request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                    "exito", true,
+                    "solicitudId", solicitud.getId(),
+                    "mensaje", "Solicitud enviada al jefe de la subruta."
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("exito", false, "mensaje", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "exito", false, "mensaje", "No se pudo enviar la solicitud."));
+        }
     }
 
     /** Total ligero para el badge del bottom nav, sin cargar conversaciones. */
@@ -232,6 +268,12 @@ public class ChatController {
                                            @RequestParam String rol,
                                            Authentication autenticacion) {
         asignarRolParticipanteUseCase.ejecutar(conversacionId, usuario(autenticacion), miembroId, rol);
+        // Avisar a TODOS los dispositivos: si otro admin me ascendió, mi app
+        // debe recalcular "puedeGestionar" sin esperar al polling de 45 s.
+        chatWebSocketHandler.emitirEvento(Map.of(
+                "tipo", "ROLES_ACTUALIZADOS",
+                "conversacionId", conversacionId
+        ));
         return ResponseEntity.noContent().build();
     }
 
