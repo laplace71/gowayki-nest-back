@@ -21,12 +21,14 @@ public class ObtenerUnidadesUseCase {
 
     public List<UnidadResponseDto> obtenerTodas() {
         return unidadRepositoryPort.findAll().stream()
+                .filter(u -> !"BAJA".equalsIgnoreCase(u.getEstado()))
                 .map(this::mapToDto)
                 .toList();
     }
 
     public List<UnidadResponseDto> obtenerPorLinea(Integer lineaId) {
         return unidadRepositoryPort.findByLineaId(lineaId).stream()
+                .filter(u -> !"BAJA".equalsIgnoreCase(u.getEstado()))
                 .map(this::mapToDto)
                 .toList();
     }
