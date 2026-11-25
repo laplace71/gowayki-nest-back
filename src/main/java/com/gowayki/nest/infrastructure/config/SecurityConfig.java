@@ -47,6 +47,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/chat/**").authenticated()
                         // Depuración administrativa: solo ADMIN con token válido.
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/unidades").hasAnyRole("ADMIN", "JEFE_RUTA")
                         // Las mutaciones de turnos requieren token y dueño/rol.
                         // Los listados siguen públicos para la app y el panel.
                         .requestMatchers(HttpMethod.PUT, "/api/turnos/**").authenticated()

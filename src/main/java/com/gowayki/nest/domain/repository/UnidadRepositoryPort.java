@@ -9,5 +9,6 @@ public interface UnidadRepositoryPort {
     List<UnidadModel> findAll();
     List<UnidadModel> findByLineaId(Integer lineaId);
     Optional<UnidadModel> findById(Integer id);
+    UnidadModel save(UnidadModel unidad);
 }
 
