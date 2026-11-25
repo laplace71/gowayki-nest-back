@@ -83,9 +83,8 @@ public class CrearSolicitudesUseCase {
         if (request == null || request.getSubrutaId() == null) {
             throw new IllegalArgumentException("Selecciona la subruta de destino.");
         }
-        if (usuarioRepositoryPort.findById(choferId).isEmpty()) {
-            throw new IllegalArgumentException("El chofer no existe.");
-        }
+        UsuarioModel solicitante = usuarioRepositoryPort.findById(choferId)
+                .orElseThrow(() -> new IllegalArgumentException("El chofer no existe."));
         Subruta subruta = subrutaRepository.findById(request.getSubrutaId())
                 .orElseThrow(() -> new IllegalArgumentException("La subruta no existe."));
 
@@ -98,6 +97,8 @@ public class CrearSolicitudesUseCase {
                 .rutaTrabajo(subruta.getNombre())
                 .lineaSolicitadaId(lineaDe(subruta))
                 .subrutaSolicitadaId(subruta.getId())
+                // La solicitud de un jefe la resuelve el administrador del panel.
+                .usuarioAsignado("JEFE_RUTA".equalsIgnoreCase(solicitante.getRol()) ? "ADMIN" : null)
                 .estado("PENDIENTE")
                 .creadoEn(ahora)
                 .actualizadoEn(ahora)
