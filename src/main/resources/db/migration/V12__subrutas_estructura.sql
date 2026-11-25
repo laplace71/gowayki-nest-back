@@ -52,3 +52,5 @@ CREATE TABLE IF NOT EXISTS subruta_geometria (
 );
 
 CREATE INDEX IF NOT EXISTS idx_subruta_geometria_subruta ON subruta_geometria(subruta_id, sentido);
+
+COMMIT;
