@@ -1,10 +1,14 @@
 package com.gowayki.nest.chat;
 
 import com.gowayki.nest.application.usecase.AgregarParticipantesUseCase;
+import com.gowayki.nest.application.usecase.MensajeSistemaService;
 import com.gowayki.nest.domain.exception.AccesoDenegadoException;
 import com.gowayki.nest.domain.model.ConversacionModel;
+import com.gowayki.nest.support.FakeChatNotificacion;
 import com.gowayki.nest.support.FakeConversacionRepository;
 import com.gowayki.nest.support.FakeEliminacionGrupoRepository;
+import com.gowayki.nest.support.FakeMensajeRepository;
+import com.gowayki.nest.support.FakeUsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,7 +32,11 @@ class AgregarParticipantesUseCaseTest {
     @BeforeEach
     void preparar() {
         conversaciones = new FakeConversacionRepository();
-        usar = new AgregarParticipantesUseCase(conversaciones, new FakeEliminacionGrupoRepository());
+        FakeMensajeRepository mensajes = new FakeMensajeRepository();
+        FakeUsuarioRepository usuarios = new FakeUsuarioRepository();
+        usar = new AgregarParticipantesUseCase(
+                conversaciones, new FakeEliminacionGrupoRepository(),
+                new MensajeSistemaService(mensajes, usuarios, conversaciones, new FakeChatNotificacion()));
         admin = UUID.randomUUID();
         otro = UUID.randomUUID();
         invitado = UUID.randomUUID();

@@ -93,6 +93,10 @@ public class LoginUseCase {
     }
 
     private UsuarioResponseDto toResponseDto(UsuarioModel usuario) {
+        var subruta = usuarioRepository.findUsuariosConSubruta().stream()
+                .filter(j -> usuario.getId().equals(j.getChoferId()))
+                .findFirst()
+                .orElse(null);
         return UsuarioResponseDto.builder()
                 .id(usuario.getId())
                 .nombre(usuario.getNombre())
@@ -102,6 +106,8 @@ public class LoginUseCase {
                 .fotoUrl(usuario.getFotoUrl())
                 .rol(usuario.getRol())
                 .isOnline(usuario.getIsOnline())
+                .subrutaId(subruta == null ? null : subruta.getSubrutaCodigo())
+                .subrutaNombre(subruta == null ? null : subruta.getSubrutaNombre())
                 .build();
     }
 }

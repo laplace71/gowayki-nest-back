@@ -5,10 +5,12 @@ import com.gowayki.nest.application.dto.EnviarMensajeTextoRequestDto;
 import com.gowayki.nest.application.usecase.AsignarRolParticipanteUseCase;
 import com.gowayki.nest.application.usecase.CrearConversacionUseCase;
 import com.gowayki.nest.application.usecase.EnviarMensajeTextoUseCase;
+import com.gowayki.nest.application.usecase.MensajeSistemaService;
 import com.gowayki.nest.domain.exception.AccesoDenegadoException;
 import com.gowayki.nest.domain.exception.ConflictoException;
 import com.gowayki.nest.domain.model.ConversacionModel;
 import com.gowayki.nest.support.FakeArchivoPendienteRepository;
+import com.gowayki.nest.support.FakeChatNotificacion;
 import com.gowayki.nest.support.FakeConversacionRepository;
 import com.gowayki.nest.support.FakeEliminacionGrupoRepository;
 import com.gowayki.nest.support.FakeMensajeRepository;
@@ -39,9 +41,11 @@ class SeguridadAccesoTest {
     }
 
     private CrearConversacionUseCase crear() {
+        FakeMensajeRepository mensajes = new FakeMensajeRepository();
         return new CrearConversacionUseCase(
-                conversaciones, usuarios, new FakeMensajeRepository(),
-                new FakeArchivoPendienteRepository(), new FakeEliminacionGrupoRepository());
+                conversaciones, usuarios, mensajes,
+                new FakeArchivoPendienteRepository(), new FakeEliminacionGrupoRepository(),
+                new MensajeSistemaService(mensajes, usuarios, conversaciones, new FakeChatNotificacion()));
     }
 
     @Test

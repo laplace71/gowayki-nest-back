@@ -24,6 +24,9 @@ public class UsuarioModel {
     private String fotoUrl;
     @Builder.Default
     private String rol = "CHOFER";
+    /** Subruta asignada desde el panel (consulta nativa; no columna de usuario). */
+    private String subrutaCodigo;
+    private String subrutaNombre;
     @Builder.Default
     private Boolean isOnline = false;
     @Builder.Default

@@ -5,6 +5,7 @@ import com.gowayki.nest.domain.exception.NoAutenticadoException;
 import com.gowayki.nest.domain.model.AsignacionTurnoModel;
 import com.gowayki.nest.domain.repository.AsignacionTurnoRepositoryPort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -13,11 +14,15 @@ import java.util.UUID;
 public class CambiarSubrutaTurnoUseCase {
 
     private final AsignacionTurnoRepositoryPort turnoRepositoryPort;
+    private final SincronizarGrupoRutaUseCase sincronizarGrupoRutaUseCase;
 
-    public CambiarSubrutaTurnoUseCase(AsignacionTurnoRepositoryPort turnoRepositoryPort) {
+    public CambiarSubrutaTurnoUseCase(AsignacionTurnoRepositoryPort turnoRepositoryPort,
+                                      SincronizarGrupoRutaUseCase sincronizarGrupoRutaUseCase) {
         this.turnoRepositoryPort = turnoRepositoryPort;
+        this.sincronizarGrupoRutaUseCase = sincronizarGrupoRutaUseCase;
     }
 
+    @Transactional
     public AsignacionTurnoModel ejecutar(UUID turnoId, String subrutaCodigo,
                                          UUID solicitanteId, boolean administrador) {
         if (solicitanteId == null) {
@@ -40,7 +45,13 @@ public class CambiarSubrutaTurnoUseCase {
             throw new IllegalArgumentException("El turno ya no está activo.");
         }
 
-        return turnoRepositoryPort.cambiarSubruta(turnoId, subrutaCodigo.trim())
+        AsignacionTurnoModel actualizado = turnoRepositoryPort.cambiarSubruta(turnoId, subrutaCodigo.trim())
                 .orElseThrow(() -> new IllegalArgumentException("El turno ya no está activo."));
+
+        // Aquí estaba el hueco: el turno cambiaba pero la membresía del chat no.
+        // El conductor se une al grupo de la nueva subruta y sale del anterior.
+        sincronizarGrupoRutaUseCase.paraTurno(actualizado);
+
+        return actualizado;
     }
 }

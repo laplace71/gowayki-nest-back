@@ -22,13 +22,16 @@ public class AsignarTurnoUseCase {
     private final AsignacionTurnoRepositoryPort turnoRepositoryPort;
     private final UsuarioRepositoryPort usuarioRepositoryPort;
     private final UnidadRepositoryPort unidadRepositoryPort;
+    private final SincronizarGrupoRutaUseCase sincronizarGrupoRutaUseCase;
 
     public AsignarTurnoUseCase(AsignacionTurnoRepositoryPort turnoRepositoryPort,
                                UsuarioRepositoryPort usuarioRepositoryPort,
-                               UnidadRepositoryPort unidadRepositoryPort) {
+                               UnidadRepositoryPort unidadRepositoryPort,
+                               SincronizarGrupoRutaUseCase sincronizarGrupoRutaUseCase) {
         this.turnoRepositoryPort = turnoRepositoryPort;
         this.usuarioRepositoryPort = usuarioRepositoryPort;
         this.unidadRepositoryPort = unidadRepositoryPort;
+        this.sincronizarGrupoRutaUseCase = sincronizarGrupoRutaUseCase;
     }
 
     @Transactional
@@ -76,6 +79,9 @@ public class AsignarTurnoUseCase {
 
         try {
             AsignacionTurnoModel guardado = turnoRepositoryPort.save(model);
+            // El conductor queda member del grupo de ruta de SU subruta desde
+            // el primer momento, y fuera de cualquier otro grupo de ruta.
+            sincronizarGrupoRutaUseCase.paraTurno(guardado);
             return toDto(guardado);
         } catch (DataIntegrityViolationException e) {
             // Protección ante doble envío/carrera: índices únicos parciales en BD

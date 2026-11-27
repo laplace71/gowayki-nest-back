@@ -2,6 +2,8 @@ package com.gowayki.nest.infrastructure.persistence.repository;
 
 import com.gowayki.nest.domain.model.UnidadModel;
 import com.gowayki.nest.domain.repository.UnidadRepositoryPort;
+import com.gowayki.nest.infrastructure.persistence.entity.Linea;
+import com.gowayki.nest.infrastructure.persistence.entity.Subruta;
 import com.gowayki.nest.infrastructure.persistence.entity.Unidad;
 import com.gowayki.nest.infrastructure.persistence.entity.UnidadPosicion;
 import com.gowayki.nest.infrastructure.persistence.mapper.UnidadMapper;
@@ -15,15 +17,21 @@ public class UnidadPersistenceAdapter implements UnidadRepositoryPort {
 
     private final SpringDataUnidadRepository unidadRepository;
     private final SpringDataUnidadPosicionRepository unidadPosicionRepository;
+    private final SpringDataLineaRepository lineaRepository;
+    private final SpringDataSubrutaRepository subrutaRepository;
     private final UnidadMapper unidadMapper;
 
     public UnidadPersistenceAdapter(
             SpringDataUnidadRepository unidadRepository,
             SpringDataUnidadPosicionRepository unidadPosicionRepository,
+            SpringDataLineaRepository lineaRepository,
+            SpringDataSubrutaRepository subrutaRepository,
             UnidadMapper unidadMapper
     ) {
         this.unidadRepository = unidadRepository;
         this.unidadPosicionRepository = unidadPosicionRepository;
+        this.lineaRepository = lineaRepository;
+        this.subrutaRepository = subrutaRepository;
         this.unidadMapper = unidadMapper;
     }
 
@@ -45,6 +53,22 @@ public class UnidadPersistenceAdapter implements UnidadRepositoryPort {
     public Optional<UnidadModel> findById(Integer id) {
         return unidadRepository.findById(id)
                 .map(this::mapearConPosicion);
+    }
+
+    @Override
+    public UnidadModel save(UnidadModel unidad) {
+        Linea linea = lineaRepository.findById(unidad.getLineaId())
+                .orElseThrow(() -> new IllegalArgumentException("La línea no existe."));
+        Subruta subruta = unidad.getSubrutaId() == null ? null : subrutaRepository.findById(unidad.getSubrutaId())
+                .orElseThrow(() -> new IllegalArgumentException("La subruta no existe."));
+        Unidad guardada = unidadRepository.save(Unidad.builder()
+                .numeroPadron(unidad.getNumeroPadron())
+                .placa(unidad.getPlaca())
+                .linea(linea)
+                .subruta(subruta)
+                .estado(unidad.getEstado() == null ? "OPERATIVA" : unidad.getEstado())
+                .build());
+        return unidadMapper.toDomain(guardada, null);
     }
 
     private UnidadModel mapearConPosicion(Unidad unidad) {
